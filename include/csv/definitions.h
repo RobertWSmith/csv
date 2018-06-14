@@ -58,7 +58,9 @@ typedef struct csv_return {
  * @return  CSV Return type
  */
 inline csvreturn csvreturn_init(void) {
-  return { 0U, 0U, 0U, 0U, 0U };
+  csvreturn rc = { 0U, 0U, 0U, 0U, 0U };
+
+  return rc;
 }
 
 /**

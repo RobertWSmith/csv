@@ -58,6 +58,7 @@ csvdialect csvdialect_init(void) {
 csvdialect csvdialect_copy(csvdialect dialect) {
   if (dialect == NULL) return NULL;
 
+  size_t size_b     = 0;
   csvdialect output = csvdialect_init();
 
 
@@ -83,8 +84,7 @@ csvdialect csvdialect_copy(csvdialect dialect) {
   if (csv_failure(csvdialect_set_lineterminator(dialect,
                                                 csvdialect_get_lineterminator(
                                                   output,
-                                                  NULL),
-                                                ))) {
+                                                  &size_b), size_b))) {
     csvdialect_close(&output);
     return NULL;
   }
@@ -132,7 +132,7 @@ csvreturn csvdialect_validate(csvdialect dialect) {
   }
 
   size_t size_b;
-  char  *string_b;
+  const char *string_b;
 
   string_b = csvdialect_get_lineterminator(dialect, &size_b);
 
@@ -141,7 +141,7 @@ csvreturn csvdialect_validate(csvdialect dialect) {
     return rc;
   }
 
-  free(string_b);
+  free((void *)string_b);
   string_b = NULL;
 
   if (!csvdialect_get_doublequote(dialect)) {
@@ -214,7 +214,6 @@ csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
   if (dialect == NULL) return rc;
 
   size_t i;
-  char   c;
 
   if (length == 0) length = strlen(lineterminator);
   memset(dialect->lineterminator, 0, CSV_LINETERMINATOR_MAX + 1);
