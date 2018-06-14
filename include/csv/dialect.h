@@ -116,13 +116,13 @@ csvreturn  csvdialect_set_delimiter(csvdialect dialect,
  *
  * Example 1) Assuming CSV Dialect is set to the defaults.
  * Input line:
- * 1,2,"abc,123",Mr. T ""Pities the fool""
+ *  1,2,"abc,123",Mr. T ""Pities the fool""
  *
  * Output by field:
- * * 1
- * * 2
- * * abc,123
- * * Mr. T "Pities the fool"
+ *  * 1
+ *  * 2
+ *  * abc,123
+ *  * Mr. T "Pities the fool"
  *
  * Example 2) Assuming CSV Dialect is set to the defaults, save for the
  * following:
@@ -130,13 +130,13 @@ csvreturn  csvdialect_set_delimiter(csvdialect dialect,
  * * @c escapechar is set to '\\'
  *
  * Input line:
- * 1,2,"abc,123",Mr. T \"Pities the fool\"
+ *  1,2,"abc,123",Mr. T \"Pities the fool\"
  *
  * Output by field:
- * * 1
- * * 2
- * * abc,123
- * * Mr. T "Pities the fool"
+ *  * 1
+ *  * 2
+ *  * abc,123
+ *  * Mr. T "Pities the fool"
  *
  * @param[in]  dialect      CSV Dialect type
  * @param[in]  doublequote  boolean to configure

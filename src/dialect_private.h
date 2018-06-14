@@ -47,7 +47,7 @@ csvreturn csvdialect_validate(csvdialect dialect);
  *
  * @see csvdialect_set_delimiter
  */
-char  csvdialect_get_delimiter(csvdialect dialect);
+char        csvdialect_get_delimiter(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect double quoting configuration
@@ -58,7 +58,7 @@ char  csvdialect_get_delimiter(csvdialect dialect);
  *
  * @see csvdialect_set_doublequote
  */
-bool  csvdialect_get_doublequote(csvdialect dialect);
+bool        csvdialect_get_doublequote(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Escape character
@@ -69,7 +69,7 @@ bool  csvdialect_get_doublequote(csvdialect dialect);
  *
  * @see csvdialect_set_escapechar
  */
-char  csvdialect_get_escapechar(csvdialect dialect);
+char        csvdialect_get_escapechar(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Line Terminator string
@@ -81,8 +81,8 @@ char  csvdialect_get_escapechar(csvdialect dialect);
  *
  * @see csvdialect_set_lineterminator
  */
-char* csvdialect_get_lineterminator(csvdialect dialect,
-                                    size_t    *length);
+const char* csvdialect_get_lineterminator(csvdialect dialect,
+                                          size_t    *length);
 
 /**
  * @brief Get CSV Dialect Quoting Character
