@@ -13,7 +13,7 @@ void test_CSVReaderInitDestroy(void) {
   csvdialect_close(&dialect);
 }
 
-int test_read(int argc, char **argv) {
+int main(int argc, char **argv) {
   UNITY_BEGIN();
 
   RUN_TEST(test_CSVReaderInitDestroy);

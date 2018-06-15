@@ -10,7 +10,7 @@ void test_CSVFieldInitDestroy(void) {
   TEST_ASSERT_NULL(field);
 }
 
-int test_field(int argc, char **argv) {
+int main(int argc, char **argv) {
   UNITY_BEGIN();
 
   RUN_TEST(test_CSVFieldInitDestroy);

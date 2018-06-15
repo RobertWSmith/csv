@@ -45,7 +45,8 @@
  * Note: lineterminator config errors don't matter for reader
  */
 typedef struct csv_return {
-  uint64_t retcode              : 1;
+  uint64_t succeeded            : 1;
+  uint64_t truncated            : 1;
   uint64_t dialect_null         : 1;
   uint64_t delimiter_error      : 1;
   uint64_t quoteescape_error    : 1;
@@ -53,12 +54,12 @@ typedef struct csv_return {
 } csvreturn;
 
 /**
- * Make a CSV Return value initialized with all fields to default.
+ * Make a CSV Return value initialized with all fields to default zeroes.
  *
  * @return  CSV Return type
  */
 inline csvreturn csvreturn_init(void) {
-  csvreturn rc = { 0U, 0U, 0U, 0U, 0U };
+  csvreturn rc;
 
   return rc;
 }
@@ -74,7 +75,7 @@ inline csvreturn csvreturn_init(void) {
  * @see csv_failure
  */
 inline bool csv_success(csvreturn retcode) {
-  return retcode.retcode;
+  return retcode.succeeded;
 }
 
 /**
@@ -88,7 +89,7 @@ inline bool csv_success(csvreturn retcode) {
  * @see csv_success
  */
 inline bool csv_failure(csvreturn retcode) {
-  return !((bool)retcode.retcode);
+  return !((bool)retcode.succeeded);
 }
 
 #endif /* CSV_DEFINITIONS_H_ */

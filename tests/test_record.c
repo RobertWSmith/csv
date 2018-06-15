@@ -10,7 +10,7 @@ void test_CSVRecordInitDestroy(void) {
   TEST_ASSERT_NULL(record);
 }
 
-int test_record(int argc, char **argv) {
+int main(int argc, char **argv) {
   UNITY_BEGIN();
 
   RUN_TEST(test_CSVRecordInitDestroy);

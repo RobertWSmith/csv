@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "csv.h"
 #include "dialect_private.h"
@@ -152,7 +153,7 @@ csvreturn csvdialect_validate(csvdialect dialect) {
   }
 
   /* all checks passed, return success */
-  rc.retcode = 1;
+  rc.succeeded = 1;
   return rc;
 }
 
@@ -162,7 +163,7 @@ csvreturn csvdialect_set_delimiter(csvdialect dialect, char delimiter) {
   if (dialect == NULL) return rc;
 
   dialect->delimiter = delimiter;
-  rc.retcode         = 1;
+  rc.succeeded       = 1;
   return rc;
 }
 
@@ -179,7 +180,7 @@ csvreturn csvdialect_set_doublequote(csvdialect dialect,
   if (dialect == NULL) return rc;
 
   dialect->doublequote = doublequote;
-  rc.retcode           = 1;
+  rc.succeeded         = 1;
   return rc;
 }
 
@@ -196,7 +197,7 @@ csvreturn csvdialect_set_escapechar(csvdialect dialect,
   if (dialect == NULL) return rc;
 
   dialect->escapechar = escapechar;
-  rc.retcode          = 1;
+  rc.succeeded        = 1;
   return rc;
 }
 
@@ -209,31 +210,36 @@ char csvdialect_get_escapechar(csvdialect dialect) {
 csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
                                         const char *lineterminator,
                                         size_t      length) {
+  size_t i;
   csvreturn rc = csvreturn_init();
 
-  if (dialect == NULL) return rc;
+  if ((dialect == NULL) || (lineterminator == NULL)) return rc;
 
-  size_t i;
-
-  if (length == 0) length = strlen(lineterminator);
-  memset(dialect->lineterminator, 0, CSV_LINETERMINATOR_MAX + 1);
+  if (length == 0) {
+    length = strlen(lineterminator);
+  }
+  memset(&dialect->lineterminator[0], 0, CSV_LINETERMINATOR_MAX + 1);
 
   for (i = 0; i < length; ++i) {
-    if (lineterminator[i] == 0) break;
     dialect->lineterminator[i] = lineterminator[i];
   }
-  rc.retcode = 1;
+  rc.succeeded = 1;
   return rc;
 }
 
 const char* csvdialect_get_lineterminator(csvdialect dialect,
                                           size_t    *length) {
   if (dialect == NULL) {
-    *length = CSV_UNDEFINED_STRING_LENGTH;
+    if (length != NULL) *length = CSV_UNDEFINED_STRING_LENGTH;
     return NULL;
   }
-  *length = strlen(dialect->lineterminator);
-  return (const char *)dialect->lineterminator;
+  else if (dialect->lineterminator == NULL) {
+    if (length != NULL) *length = 0;
+    return NULL;
+  }
+
+  if (length != NULL) *length = strlen(dialect->lineterminator);
+  return (const char *)&dialect->lineterminator[0];
 }
 
 csvreturn csvdialect_set_quotechar(csvdialect dialect,
@@ -243,7 +249,7 @@ csvreturn csvdialect_set_quotechar(csvdialect dialect,
   if (dialect == NULL) return rc;
 
   dialect->quotechar = quotechar;
-  rc.retcode         = 1;
+  rc.succeeded       = 1;
   return rc;
 }
 
@@ -260,7 +266,7 @@ csvreturn csvdialect_set_quotestyle(csvdialect  dialect,
   if (dialect == NULL) return rc;
 
   dialect->quotestyle = quotestyle;
-  rc.retcode          = 1;
+  rc.succeeded        = 1;
   return rc;
 }
 
@@ -277,7 +283,7 @@ csvreturn csvdialect_set_skipinitialspace(csvdialect dialect,
   if (dialect == NULL) return rc;
 
   dialect->skipinitialspace = skipinitialspace;
-  rc.retcode                = 1;
+  rc.succeeded              = 1;
   return rc;
 }
 
