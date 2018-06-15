@@ -1,23 +1,35 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.10)
 project(csv VERSION ${csv_VERSION} LANGUAGES C)
-
-set(csv_PUBLIC_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/include CACHE PATH "" FORCE)
-set(csv_PRIVATE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH "" FORCE)
 
 configure_file(
   ${csv_PUBLIC_INCLUDE_DIR}/csv/version.h.in
   ${csv_PUBLIC_INCLUDE_DIR}/csv/version.h
 )
 
-add_library(csv csv_dialect.c)
+add_library(csv csv_dialect.c csv_field.c csv_read.c csv_record.c csv_write.c)
 
 target_compile_features(csv PUBLIC c_std_99)
 
+set(csv_PUBLIC_HEADER_FILES
+  csv.h
+  csv/definitions.h
+  csv/dialect.h
+  csv/field.h
+  csv/read.h
+  csv/record.h
+  csv/version.h
+  csv/write.h
+  CACHE FILEPATH "" FORCE)
+
+  set(csv_PRIVATE_HEADER_FILES
+    dialect_private.h
+    CACHE FILEPATH "" FORCE)
+
 set_target_properties(csv PROPERTIES
     PUBLIC_HEADER
-      "csv.h;csv/definitions.h;csv/dialect.h;csv/field.h;csv/read.h;csv/record.h;csv/version.h;csv/write.h"
+      "${csv_PUBLIC_HEADER_FILES}"
     PRIVATE_HEADER
-      "dialect_private.h"
+      "${csv_PRIVATE_HEADER_FILES}"
 )
 
 target_include_directories(csv

@@ -5,8 +5,6 @@
 #include "dialect.h"
 #include "record.h"
 
-#include "dialect_private.h"
-
 /**
  * @brief CSV Writer datastructure
  *
@@ -40,7 +38,7 @@ typedef struct csv_writer *csvwriter;
  * @see csvwriter_close
  * @see csvwriter_next_record
  */
-csvwriter csvwriter_init(csvdialect  dialect,
+csvwriter csvwriter_init(csvdialect dialect,
                          const char *filepath);
 
 /**
@@ -54,7 +52,7 @@ csvwriter csvwriter_init(csvdialect  dialect,
  *
  * @see csvwriter_init
  */
-void      csvwriter_close(csvwriter *writer);
+void csvwriter_close(csvwriter *writer);
 
 /**
  * @brief Set next CSV Record to CSV Writer's file
@@ -65,8 +63,8 @@ void      csvwriter_close(csvwriter *writer);
  * @return              CSV Return type to determine if the operation was
  *                      successful
  */
-csvreturn csvwriter_next_record(csvwriter       writer,
+csvreturn csvwriter_next_record(csvwriter				writer,
                                 const csvrecord record);
 
 
-#endif /* CSV_WRITE_H_ */
+#endif  /* CSV_WRITE_H_ */

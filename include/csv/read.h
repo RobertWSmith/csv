@@ -12,8 +12,6 @@
 #include "dialect.h"
 #include "record.h"
 
-#include "dialect_private.h"
-
 /**
  * @brief CSV Reader datastructure
  *
@@ -46,7 +44,7 @@ typedef struct csv_reader *csvreader;
  * @see csvreader_close
  * @see csvreader_next_record
  */
-csvreader csvreader_init(csvdialect  dialect,
+csvreader csvreader_init(csvdialect dialect,
                          const char *filepath);
 
 /**
@@ -60,7 +58,7 @@ csvreader csvreader_init(csvdialect  dialect,
  *
  * @see csvreader_init
  */
-void      csvreader_close(csvreader *reader);
+void csvreader_close(csvreader *reader);
 
 /**
  * @brief Get next CSV Record from CSV Reader's file
@@ -72,7 +70,7 @@ void      csvreader_close(csvreader *reader);
  * @return              CSV Return type to determine if the operation was
  *                      successful
  */
-csvreturn csvreader_next_record(csvreader  reader,
+csvreturn csvreader_next_record(csvreader reader,
                                 csvrecord *record);
 
-#endif /* CSV_READ_H_ */
+#endif  /* CSV_READ_H_ */

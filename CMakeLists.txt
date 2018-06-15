@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.10)
 
 set(csv_VERSION_MAJOR 0)
 set(csv_VERSION_MINOR 0)
@@ -10,13 +10,17 @@ project(csv_root VERSION ${csv_VERSION} LANGUAGES C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE PATH "" FORCE)
 
+include(GNUInstallDirs)
+
 # check for default install prefix, or assign build directory if undefined
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTAL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "" FORCE)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "" FORCE)
   message("No default install directory defied, using default of: `${CMAKE_INSTALL_PREFIX}`")
 endif()
 
 set(csv_PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH "" FORCE)
+set(csv_PUBLIC_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/include CACHE PATH "" FORCE)
+set(csv_PRIVATE_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/src CACHE PATH "" FORCE)
 
 add_subdirectory(external)
 add_subdirectory(src)

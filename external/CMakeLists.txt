@@ -1,25 +1,27 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.10)
 project(csv_external VERSION ${csv_VERSION} LANGUAGES C)
 
-include(ExternalProject)
+find_package(Git REQUIRED)
 
-set(CSV_EXTERNAL_BUILD_DIR ${CMAKE_BINARY_DIR}/external CACHE PATH "" FORCE)
-set(Unity_PREFIX_PATH ${CSV_EXTERNAL_BUILD_DIR}/Unity CACHE PATH "" FORCE)
-set(Unity_ROOT ${Unity_PREFIX_PATH}/src/Unity/src CACHE PATH "" FORCE)
+if(NOT GIT_FOUND)
+  message("Could not find git, cannot build tests")
+else()
+  set(Unity_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Unity CACHE PATH "" FORCE)
 
-ExternalProject_Add(
-  Unity
-  PREFIX            ${Unity_PREFIX_PATH}
-  GIT_REPOSITORY    "https://github.com/ThrowTheSwitch/Unity.git"
-  GIT_TAG           "v2.4.3"
-  UPDATE_COMMAND    ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND     ""
-  INSTALL_COMMAND   ""
-  TEST_COMMAND      ""
-)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} submodule update --init -- external/Unity
+    WORKING_DIRECTORY ${csv_PROJECT_ROOT_DIR}
+  )
+  # tagged on 2017-11-14, specified to ensure no update surprises
+  # use this checksum hash if the tags are ever modified
+  # "287e076962ec711cd2bdf08364a8df9ce51e106b"
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} checkout "v2.4.3"
+    WORKING_DIRECTORY ${Unity_ROOT}
+  )
 
-add_library(unity ${Unity_ROOT}/unity.c)
-target_include_directories(unity PUBLIC ${Unity_ROOT})
-target_compile_features(unity PUBLIC c_std_99)
-target_compile_options(unity PRIVATE -Wall -Og)
+  add_library(unity ${Unity_ROOT}/src/unity.c)
+  target_include_directories(unity PUBLIC ${Unity_ROOT}/src)
+  target_compile_features(unity PUBLIC c_std_99)
+  target_compile_options(unity PRIVATE -Wall -Og)
+endif()
