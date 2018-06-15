@@ -3,17 +3,18 @@
 #include "unity.h"
 
 void test_CSVDialectInitDestroy(void) {
-	csvdialect dialect = csvdialect_init();
-	TEST_ASSERT_NOT_NULL(dialect);
+  csvdialect dialect = csvdialect_init();
 
-	csvdialect_close(&dialect);
-	TEST_ASSERT_NULL(dialect);
+  TEST_ASSERT_NOT_NULL(dialect);
+
+  csvdialect_close(&dialect);
+  TEST_ASSERT_NULL(dialect);
 }
 
-int main(void) {
-	UNITY_BEGIN();
+int test_dialect(int argc, char **argv) {
+  UNITY_BEGIN();
 
-	RUN_TEST(test_CSVDialectInitDestroy);
+  RUN_TEST(test_CSVDialectInitDestroy);
 
-	return UNITY_END();
+  return UNITY_END();
 }

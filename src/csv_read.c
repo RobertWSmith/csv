@@ -4,26 +4,26 @@
 #include "csv.h"
 
 struct csv_reader {
-	csvdialect	dialect;
-	FILE				* file;
+  csvdialect dialect;
+  FILE      *file;
 };
 
-csvreader csvreader_init(csvdialect dialect,
+csvreader csvreader_init(csvdialect  dialect,
                          const char *filepath) {
-	return NULL;
+  return NULL;
 }
 
 void csvreader_close(csvreader *reader) {
-	if (*reader == NULL) return;
-	if ( (*reader)->dialect != NULL )
-		csvdialect_close(&( (*reader)->dialect ) );
-	if ( (*reader)->file != NULL )
-		fclose( (*reader)->file );
-	free(*reader);
-	*reader = NULL;
+  if (*reader == NULL) return;
+
+  if ((*reader)->dialect != NULL) csvdialect_close(&((*reader)->dialect));
+
+  if ((*reader)->file != NULL) fclose((*reader)->file);
+  free(*reader);
+  *reader = NULL;
 }
 
-csvreturn csvreader_next_record(csvreader reader,
+csvreturn csvreader_next_record(csvreader  reader,
                                 csvrecord *record) {
-	return csvreturn_init();
+  return csvreturn_init();
 }

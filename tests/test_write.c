@@ -2,20 +2,21 @@
 #include "unity.h"
 
 void test_CSVWriterInitDestroy(void) {
-	csvdialect	dialect = csvdialect_init();
-	csvwriter		writer = csvwriter_init(dialect, NULL);
-	TEST_ASSERT_NOT_NULL(writer);
+  csvdialect dialect = csvdialect_init();
+  csvwriter  writer  = csvwriter_init(dialect, NULL);
 
-	csvwriter_close(&writer);
-	TEST_ASSERT_NULL(writer);
+  TEST_ASSERT_NOT_NULL(writer);
 
-	csvdialect_close(&dialect);
+  csvwriter_close(&writer);
+  TEST_ASSERT_NULL(writer);
+
+  csvdialect_close(&dialect);
 }
 
-int main(void) {
-	UNITY_BEGIN();
+int test_write(int argc, char **argv) {
+  UNITY_BEGIN();
 
-	RUN_TEST(test_CSVWriterInitDestroy);
+  RUN_TEST(test_CSVWriterInitDestroy);
 
-	return UNITY_END();
+  return UNITY_END();
 }

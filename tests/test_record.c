@@ -2,17 +2,18 @@
 #include "unity.h"
 
 void test_CSVRecordInitDestroy(void) {
-	csvrecord record = csvrecord_init();
-	TEST_ASSERT_NOT_NULL(record);
+  csvrecord record = csvrecord_init();
 
-	csvrecord_close(&record);
-	TEST_ASSERT_NULL(record);
+  TEST_ASSERT_NOT_NULL(record);
+
+  csvrecord_close(&record);
+  TEST_ASSERT_NULL(record);
 }
 
-int main(void) {
-	UNITY_BEGIN();
+int test_record(int argc, char **argv) {
+  UNITY_BEGIN();
 
-	RUN_TEST(test_CSVRecordInitDestroy);
+  RUN_TEST(test_CSVRecordInitDestroy);
 
-	return UNITY_END();
+  return UNITY_END();
 }

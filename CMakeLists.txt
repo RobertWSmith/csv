@@ -10,6 +10,24 @@ project(csv_root VERSION ${csv_VERSION} LANGUAGES C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE PATH "" FORCE)
 
+##### Begin Build Variables
+option( BUILD_TESTING
+        "Flag which controls CTest execution for the CSV Unit Tests"
+        ON)
+
+if(WIN32)
+  # for some reason, after building on windows executables can't find the
+  # linked library.
+  set(BUILD_SHARED_LIBS OFF)
+else()
+  set(BUILD_SHARED_LIBS ON)
+endif()
+
+option( BUILD_SHARED_LIBS
+        "Flag which controls if CSV Library is built as shared (ON) or static (OFF)"
+        ${BUILD_SHARED_LIBS})
+##### End Build Variables
+
 include(GNUInstallDirs)
 
 # check for default install prefix, or assign build directory if undefined

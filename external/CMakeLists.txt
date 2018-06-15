@@ -20,7 +20,9 @@ else()
     WORKING_DIRECTORY ${Unity_ROOT}
   )
 
-  add_library(unity ${Unity_ROOT}/src/unity.c)
+  # force static linkage for Unity, it's small and MinGW seems to have issues
+  # dynamically linking for some undetermined reason
+  add_library(unity STATIC ${Unity_ROOT}/src/unity.c)
   target_include_directories(unity PUBLIC ${Unity_ROOT}/src)
   target_compile_features(unity PUBLIC c_std_99)
   target_compile_options(unity PRIVATE -Wall -Og)

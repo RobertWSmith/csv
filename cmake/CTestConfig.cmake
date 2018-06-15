@@ -1,0 +1,2 @@
+set(CTEST_PROJECT_NAME "CSV_Library")
+set(CTEST_BUILD_NAME "CSV_Library-${csv_VERSION}")
