@@ -9,7 +9,6 @@
 #define CSV_DIALECT_H_
 
 #include <stddef.h>
-#include <stdbool.h>
 
 #include "definitions.h"
 
@@ -38,10 +37,20 @@
  *                        be valid.
  */
 typedef enum QUOTE_STYLE {
-  QUOTE_STYLE_MINIMAL = 0,
-  QUOTE_STYLE_NONE,
-  QUOTE_STYLE_ALL
+	QUOTE_STYLE_MINIMAL = 0,
+	QUOTE_STYLE_NONE,
+	QUOTE_STYLE_ALL
 } QUOTE_STYLE;
+
+/**
+ * @brief CSV Line Terminator Type
+ */
+typedef enum CSV_LINETERMINATOR_TYPE {
+	LINETERMINATOR_SYSTEM_DEFAULT = 0,
+	LINETERMINATOR_CRNL,
+	LINETERMINATOR_CR,
+	LINETERMINATOR_NL
+} CSV_LINETERMINATOR_TYPE;
 
 /**
  * @brief CSV Dialect type which configures CSV reader and writer objects
@@ -79,7 +88,7 @@ csvdialect csvdialect_init(void);
  *
  * @see csvdialect_init
  */
-void       csvdialect_close(csvdialect *dialect);
+void csvdialect_close(csvdialect *dialect);
 
 /**
  * @brief Set CSV Dialect delimiter character
@@ -99,8 +108,8 @@ void       csvdialect_close(csvdialect *dialect);
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn  csvdialect_set_delimiter(csvdialect dialect,
-                                    char       delimiter);
+csvreturn csvdialect_set_delimiter(csvdialect		dialect,
+                                   unsigned int delimiter);
 
 /**
  * @brief Set CSV Dialect quote character escape configuration
@@ -148,7 +157,7 @@ csvreturn  csvdialect_set_delimiter(csvdialect dialect,
  * @see csvdialect_close
  */
 csvreturn csvdialect_set_doublequote(csvdialect dialect,
-                                     bool       doublequote);
+                                     int				doublequote);
 
 /**
  * @brief Set CSV Dialect escape character
@@ -172,8 +181,8 @@ csvreturn csvdialect_set_doublequote(csvdialect dialect,
  * @see csvdialect_close
  * @see csvdialect_set_doublequote
  */
-csvreturn csvdialect_set_escapechar(csvdialect dialect,
-                                    char       escapechar);
+csvreturn csvdialect_set_escapechar(csvdialect		dialect,
+                                    unsigned int	escapechar);
 
 /**
  * @brief Set CSV Dialect Lineterminator sequence
@@ -197,10 +206,7 @@ csvreturn csvdialect_set_escapechar(csvdialect dialect,
  * therefore any changes to the string will not affect the CSV dialect.
  *
  * @param[in]  dialect        CSV Dialect type
- * @param[in]  lineterminator Lineterminator string to apply
- * @param[in]  length         Length of the @p lineterminator string. If set to
- *                            zero the value will be populated with a call to
- *                            @c strlen.
+ * @param[in]  lineterminator enum constant which controls the lineterminator.
  *
  * @return                    CSV Return type to determine if the operation was
  *                            successful
@@ -209,9 +215,8 @@ csvreturn csvdialect_set_escapechar(csvdialect dialect,
  * @see csvdialect_close
  * @see CSV_LINETERMINATOR_MAX
  */
-csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
-                                        const char *lineterminator,
-                                        size_t      length);
+csvreturn csvdialect_set_lineterminator(csvdialect							dialect,
+                                        CSV_LINETERMINATOR_TYPE lineterminator);
 
 /**
  * @brief Set CSV Dialect Quoting Character
@@ -229,8 +234,8 @@ csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn csvdialect_set_quotechar(csvdialect dialect,
-                                   char       quotechar);
+csvreturn csvdialect_set_quotechar(csvdialect		dialect,
+                                   unsigned int quotechar);
 
 /**
  * @brief Set CSV Dialect Quoting Style
@@ -249,7 +254,7 @@ csvreturn csvdialect_set_quotechar(csvdialect dialect,
  * @see csvdialect_close
  * @see QUOTE_STYLE
  */
-csvreturn csvdialect_set_quotestyle(csvdialect  dialect,
+csvreturn csvdialect_set_quotestyle(csvdialect	dialect,
                                     QUOTE_STYLE quotestyle);
 
 /**
@@ -272,8 +277,8 @@ csvreturn csvdialect_set_quotestyle(csvdialect  dialect,
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn csvdialect_set_skipinitialspace(csvdialect dialect,
-                                          bool       skipinitialspace);
+csvreturn csvdialect_set_skipinitialspace(csvdialect	dialect,
+                                          int					skipinitialspace);
 
 
-#endif /* CSV_DIALECT_H_ */
+#endif  /* CSV_DIALECT_H_ */

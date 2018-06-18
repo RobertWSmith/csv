@@ -7,7 +7,6 @@
 #ifndef CSV_DIALECT_PRIVATE_H_
 #define CSV_DIALECT_PRIVATE_H_
 
-#include <stdbool.h>
 #include <stddef.h>
 
 #include "csv/dialect.h"
@@ -47,7 +46,7 @@ csvreturn csvdialect_validate(csvdialect dialect);
  *
  * @see csvdialect_set_delimiter
  */
-char        csvdialect_get_delimiter(csvdialect dialect);
+unsigned int csvdialect_get_delimiter(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect double quoting configuration
@@ -58,7 +57,7 @@ char        csvdialect_get_delimiter(csvdialect dialect);
  *
  * @see csvdialect_set_doublequote
  */
-bool        csvdialect_get_doublequote(csvdialect dialect);
+int csvdialect_get_doublequote(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Escape character
@@ -69,20 +68,18 @@ bool        csvdialect_get_doublequote(csvdialect dialect);
  *
  * @see csvdialect_set_escapechar
  */
-char        csvdialect_get_escapechar(csvdialect dialect);
+unsigned int csvdialect_get_escapechar(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Line Terminator string
  *
  * @param[in]   dialect CSV Dialect type
- * @param[out]  length  Reference to pass the length of the output string
  *
  * @return              CSV Lineterminator string
  *
  * @see csvdialect_set_lineterminator
  */
-const char* csvdialect_get_lineterminator(csvdialect dialect,
-                                          size_t    *length);
+CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Quoting Character
@@ -93,7 +90,7 @@ const char* csvdialect_get_lineterminator(csvdialect dialect,
  *
  * @see csvdialect_set_quotechar
  */
-char        csvdialect_get_quotechar(csvdialect dialect);
+unsigned int csvdialect_get_quotechar(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Quoting Style
@@ -115,6 +112,6 @@ QUOTE_STYLE csvdialect_get_quotestyle(csvdialect dialect);
  *
  * @see csvdialect_set_skipinitialspace
  */
-bool        csvdialect_get_skipinitialspace(csvdialect dialect);
+int csvdialect_get_skipinitialspace(csvdialect dialect);
 
-#endif /* CSV_DIALECT_PRIVATE_H_ */
+#endif  /* CSV_DIALECT_PRIVATE_H_ */

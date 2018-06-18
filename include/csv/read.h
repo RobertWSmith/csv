@@ -8,6 +8,8 @@
 #ifndef CSV_READ_H_
 #define CSV_READ_H_
 
+#include <stdio.h>
+
 #include "definitions.h"
 #include "dialect.h"
 #include "record.h"
@@ -20,7 +22,7 @@
 typedef struct csv_reader *csvreader;
 
 /**
- * @brief CSV Reader initializer
+ * @brief CSV Reader initializer from filepath
  *
  * Create a new CSV Reader.
  *
@@ -41,11 +43,99 @@ typedef struct csv_reader *csvreader;
  * @return              Fully initialized CSV Reader, or NULL on error
  *
  * @see csvdialect_init
+ * @see csvreader_file_init
  * @see csvreader_close
  * @see csvreader_next_record
  */
 csvreader csvreader_init(csvdialect dialect,
                          const char *filepath);
+
+/**
+ * @brief CSV Reader initializer from file object
+ *
+ * Create a new CSV Reader.
+ *
+ * If @p filepath cannot be opened with @c fopen the return value for
+ * @c csvreader_init will be @c NULL.
+ *
+ * If any other issue not noted is encountered during the call to
+ * @c csvreader_init the @c csvreader returned will be @c NULL.
+ *
+ * @param[in]  dialect  CSV dialect type.
+ * @param[in]  datafile File object for input stream
+ *
+ * @return              Fully initialized CSV Reader, or NULL on error
+ *
+ * @see csvdialect_init
+ * @see csvreader_close
+ * @see csvreader_next_record
+ */
+csvreader csvreader_file_init(csvdialect	dialect,
+                              FILE				*datafile);
+
+/**
+ * @brief Advanced Initializer for CSV Reader
+ *
+ * Allows customization of data sources and decoding prior to CSV parser
+ * application.
+ *
+ * @param[in]  dialect        preconfigured CSV Dialect type
+ * @param[in]  getnext        Function pointer which returns the next character
+ *                            in the stream buffer. Must not be NULL
+ * @param[in]  savefield      Function pointer which resets the buffer to the
+ *                            beginning and returns
+ * @param[in]  streamdata     Datastructure which is passed to @p stream_getnext
+ *
+ * @return                initialized CSV Reader
+ *
+ * @see csvreader_advanced_init
+ * @see csvstream_type
+ * @see csvstream_open
+ * @see csvstream_getnext
+ * @see csvstream_close
+ */
+csvreader csvreader_advanced_init(csvdialect					dialect,
+                                  csvstream_getnext		getnext,
+                                  csvstream_savefield saavefield,
+                                  csvstream_type			streamdata);
+
+/**
+ * @brief Set CSV stream opener
+ * @param  reader        CSV reader type
+ * @param  stream_opener Function pointer which accepts the @c streamdata
+ *                       value from @c csvreader_advanced_init and returns
+ *                       the @c streamdata refreshed. Optional, as @c streamdata
+ *                       can be provided already opened. This function is called
+ *                       the first time @c csvreader_next_record is called.
+ *
+ * @return               initialized CSV Reader
+ *
+ * @see csvreader_advanced_init
+ * @see csvstream_type
+ * @see csvstream_open
+ */
+csvreader csvreader_set_opener(csvreader			reader,
+                               csvstream_open stream_opener);
+
+/**
+ * @brief Set CSV stream closer
+ *
+ * @param[in]  reader        CSV reader type
+ * @param[in]  stream_closer Function pointer which accepts the @c streamdata
+ *                           and uses this to properly close the stream. This
+ *                           function is called at the very beginning of the
+ *                           @c csvreader_close function.
+ *
+ * @return                   initialized CSV Reader
+ *
+ * @see csvreader_advanced_init
+ * @see csvstream_type
+ * @see csvstream_close
+ */
+csvreader csvreader_set_closer(csvreader				reader,
+                               csvstream_close	stream_closer);
+
+
 
 /**
  * @brief CSV Reader destructor
