@@ -56,14 +56,16 @@ void      csvwriter_close(csvwriter *writer);
 /**
  * @brief Set next CSV Record to CSV Writer's file
  *
- * @param[in]   writer  CSV Writer type
- * @param[out]  record  CSV Record type
+ * @param[in]   writer        CSV Writer type
+ * @param[in]   record        CSV Record type
+ * @param[in]   record_length Number of fields stored in @p record
  *
  * @return              CSV Return type to determine if the operation was
  *                      successful
  */
 csvreturn csvwriter_next_record(csvwriter            writer,
-                                const csvrecord_type record);
+                                const csvrecord_type record,
+                                size_t               record_length);
 
 
 #endif /* CSV_WRITE_H_ */

@@ -95,7 +95,7 @@ csvfilereader csv_filepath_open(char const *filepath) {
   csvfilereader fr = NULL;
   FILE *fileobj    = NULL;
 
-  if ((fileobj = fopen(fr->filepath, "rb")) == NULL) {
+  if ((fileobj = fopen(filepath, "rb")) == NULL) {
     return NULL;
   }
 
@@ -431,151 +431,103 @@ void csvreader_close(csvreader *reader) {
 
 /* bool controls 'should continue' (true) or should break switch (false) */
 inline bool parse_start_record(csvreader reader, char32_t value) {
-  switch (value) {
-  case '\0':
-
-    // empty line, return empty record
+  if (value == '\0') {
+    // indicates empty record
     return false;
-
-  case '\r':
-  case '\n':
+  }
+  else if ((value == '\n') || (value == '\r')) {
     reader->parser_state = EAT_CRNL;
     return false;
-
-  default:
-
-    // normal character, handle as start field
-    reader->parser_state = START_FIELD;
-    return true;
   }
+
+  // normal character, handle as start field
+  reader->parser_state = START_FIELD;
+  return true;
 }
 
 inline void parse_start_field(csvreader reader, char32_t value) {
-  csvdialect dialect = reader->dialect;
-
-  switch (value) {
-  case '\0':
-  case '\r':
-  case '\n':
+  if ((value == '\0') || (value == '\n') || (value == '\r')) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = value == '\0' ? START_RECORD : EAT_CRNL;
-    break;
-
-  case csvdialect_get_quotechar(dialect):
-
-    if (dialect->quotestyle != QUOTE_STYLE_NONE) {
-      reader->parser_state = IN_QUOTED_FIELD;
-    }
-    break;
-
-  case csvdialect_get_escapechar(dialect):
+  }
+  else if ((value == csvdialect_get_quotechar(reader->dialect)) &&
+           (QUOTE_STYLE_NONE == csvdialect_get_quotestyle(reader->dialect))) {
+    reader->parser_state = IN_QUOTED_FIELD;
+  }
+  else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPED_CHAR;
-    break;
-
-  case ' ':
-
-    // if skip initial space is configured, go for that
-    if (dialect->skipinitialspace) break;
-
-  // else fall through
-
-  case csvdialect_get_delimiter(dialect):
-
+  }
+  else if ((value == ' ') && csvdialect_get_skipinitialspace(reader->dialect)) {}
+  else if (value == csvdialect_get_delimiter(reader->dialect)) {
     // end of field, so therefore empty/null field
     (*reader->savefield)(reader->streamdata);
-    break;
-
-  default:
+  }
+  else {
     (*reader->appendchar)(reader->streamdata, value);
     reader->parser_state = IN_FIELD;
-    break;
   }
 }
 
 inline void parse_escaped_char(csvreader reader, char32_t value) {
-  switch (value) {
-  case '\r':
-  case '\n':
+  if ((value == '\n') || (value == '\r')) {
     (*reader->appendchar)(reader->streamdata, value);
     reader->parser_state = AFTER_ESCAPED_CRNL;
-    break;
-
-  case '\0':
-    value = '\n';
-
-  default:
-    (*reader->appendchar)(reader->streamdata, value);
-    reader->parser_state = IN_FIELD;
-    break;
+    return;
   }
+
+  if (value == '\0') {
+    value = '\n';
+  }
+
+  (*reader->appendchar)(reader->streamdata, value);
+  reader->parser_state = IN_FIELD;
 }
 
 inline void parse_in_field(csvreader reader, char32_t value) {
   // in unquoted field
-  csvdialect dialect = reader->dialect;
-
-  switch (value) {
-  case '\0':
-  case '\r':
-  case '\n':
+  if ((value == '\n') || (value == '\r') || (value == '\0')) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = value == '\0' ? START_RECORD : EAT_CRNL;
-    break;
-
-  case csvdialect_get_escapechar(dialect):
+  }
+  else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPED_CHAR;
-    break;
-
-  case csvdialect_get_delimiter(dialect):
+  }
+  else if (value == csvdialect_get_delimiter(reader->dialect)) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = START_FIELD;
-    break;
-
-  default:
+  }
+  else {
     (*reader->appendchar)(reader->streamdata, value);
-    break;
   }
 }
 
 inline void parse_in_quoted_field(csvreader reader, char32_t value) {
-  csvdialect dialect = reader->dialect;
-
-  switch (value) {
-  case '\0':
-    break;
-
-  case csvdialect_get_escapechar(dialect):
+  if (value == '\0') { /* no-op */ }
+  else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPE_IN_QUOTED_FIELD;
-    break;
-
-  case csvdialect_get_quotechar(dialect):
-
-    if (csvdialect_get_quotestyle(dialect) != QUOTE_STYLE_NONE) {
-      if (csvdialect_get_doublequote(dialect)) {
-        reader->parser_state = QUOTE_IN_QUOTED_FIELD;
-      }
-      else {
-        reader->parser_state = IN_FIELD;
-      }
-      break;
+  }
+  else if ((value == csvdialect_get_quotechar(reader->dialect)) &&
+           (QUOTE_STYLE_NONE != csvdialect_get_quotestyle(reader->dialect))) {
+    if (csvdialect_get_doublequote(reader->dialect)) {
+      reader->parser_state = QUOTE_IN_QUOTED_FIELD;
     }
-
-  default:
+    else {
+      reader->parser_state = IN_FIELD;
+    }
+  }
+  else {
     (*reader->appendchar)(reader->streamdata, value);
-    break;
   }
 }
 
 inline void parse_quote_in_quoted_field(csvreader reader, char32_t value) {
-  csvdialect dialect = reader->dialect;
-
-  if ((csvdialect_get_quotestyle(dialect) != QUOTE_STYLE_NONE) &&
-      (value == csvdialect_get_quotechar(dialect))) {
+  if ((csvdialect_get_quotestyle(reader->dialect) != QUOTE_STYLE_NONE) &&
+      (value == csvdialect_get_quotechar(reader->dialect))) {
     // save "" as "
     (*reader->appendchar)(reader->streamdata, value);
     reader->parser_state = IN_QUOTED_FIELD;
   }
-  else if (value == csvdialect_get_delimiter(dialect)) {
+  else if (value == csvdialect_get_delimiter(reader->dialect)) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = START_FIELD;
   }
@@ -589,8 +541,6 @@ inline void parse_quote_in_quoted_field(csvreader reader, char32_t value) {
 }
 
 inline void parse_value(csvreader reader, char32_t value) {
-  csvdialect dialect = reader->dialect;
-
   switch (reader->parser_state) {
   case START_RECORD:
 
@@ -639,6 +589,11 @@ inline void parse_value(csvreader reader, char32_t value) {
       reader->parser_state = START_RECORD;
     }
     break;
+
+  default:
+    fprintf(stderr, "Undefined CSV Reader Parser State: %d",
+            reader->parser_state);
+    break;
   }
 }
 
@@ -648,30 +603,30 @@ csvreturn csvreader_next_record(csvreader       reader,
                                 size_t         *record_length) {
   char32_t value           = 0;
   CSV_STREAM_SIGNAL signal = CSV_GOOD;
-  csvrecord_type    record = NULL;
-  size_t record_length     = 0;
 
   do {
     if ((signal = (*reader->getnext)(reader->streamdata, &value)) == CSV_GOOD) {
       parse_value(reader, value);
     }
     else {
-      *char_type =
-        (*reader->saverecord)(reader->streamdata, &record, &record_length);
-
-      if (signal == CSV_GOOD) {
-        return csvreturn_init(true);
-      }
-      else if (signal == CSV_EOF) {
-        csvreturn rc = csvreturn_init(true);
-        rc.csv_eof = 1;
-        return rc;
-      }
-      else {
-        csvreturn rc = csvreturn_init(false);
-        rc.csv_io_error = 1;
-        return rc;
-      }
+      break;
     }
   } while (reader->parser_state != START_RECORD);
+
+  *char_type =
+    (*reader->saverecord)(reader->streamdata, record, record_length);
+
+  if (signal == CSV_GOOD) {
+    return csvreturn_init(true);
+  }
+  else if (signal == CSV_EOF) {
+    csvreturn rc = csvreturn_init(true);
+    rc.csv_eof = 1;
+    return rc;
+  }
+  else {
+    csvreturn rc = csvreturn_init(false);
+    rc.csv_io_error = 1;
+    return rc;
+  }
 }

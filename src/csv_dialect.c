@@ -110,9 +110,11 @@ csvdialect csvdialect_copy(csvdialect dialect) {
 }
 
 void csvdialect_close(csvdialect *dialect) {
-  if ((*dialect) == NULL) return;
+  csvdialect d = *dialect;
 
-  free(*dialect);
+  if (d == NULL) return;
+
+  free(d);
   *dialect = NULL;
 }
 

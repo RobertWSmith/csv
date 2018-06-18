@@ -25,7 +25,7 @@ if(BUILD_TESTING)
       target_include_directories(${targetname} PUBLIC ${csv_PRIVATE_INCLUDE_DIR})
     endif()
 
-    add_test(${targetname} ${targetname})
+    add_test(${targetname} ${csv_TEST_DIR}/${targetname})
     set_tests_properties(${targetname} PROPERTIES
       WORKING_DIRECTORY ${csv_WORKING_DIR}
       PASS_REGULAR_EXPRESSION "PASS"

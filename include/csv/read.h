@@ -148,6 +148,7 @@ void      csvreader_close(csvreader *reader);
  *                      successful
  */
 csvreturn csvreader_next_record(csvreader       reader,
+                                CSV_CHAR_TYPE  *char_type,
                                 csvrecord_type *record,
                                 size_t         *record_length);
 

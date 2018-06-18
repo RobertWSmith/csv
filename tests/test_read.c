@@ -7,6 +7,15 @@ void test_CSVReaderInitDestroy(void) {
   csvdialect dialect = csvdialect_init();
   csvreader  reader  = csvreader_init(dialect, NULL);
 
+  // if no filepath is passed, should be a NULL reader
+  TEST_ASSERT_NULL(reader);
+
+  // file doesn't exist generates null reader
+  reader = csvreader_init(dialect, "file-does-not-exist.csv");
+  TEST_ASSERT_NULL(reader);
+
+  // file does exist generate non-null reader
+  reader = csvreader_init(dialect, "data/iris.csv");
   TEST_ASSERT_NOT_NULL(reader);
 
   csvreader_close(&reader);

@@ -23,7 +23,8 @@ void csvwriter_close(csvwriter *writer) {
   *writer = NULL;
 }
 
-csvreturn csvwriter_next_record(csvwriter       writer,
-                                const csvrecord record) {
+csvreturn csvwriter_next_record(csvwriter            writer,
+                                const csvrecord_type record,
+                                size_t               record_length) {
   return csvreturn_init(false);
 }
