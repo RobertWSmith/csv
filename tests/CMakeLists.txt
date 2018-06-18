@@ -8,12 +8,11 @@ if(BUILD_TESTING)
   # might not need this
   include(CTestConfig)
 
+  set(csv_WORKING_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH "" FORCE)
   set(csv_TEST_DIR ${CMAKE_BINARY_DIR}/tests CACHE PATH "" FORCE)
   set(csv_TEST_SOURCES
     test_dialect.c
-    test_field.c
     test_read.c
-    test_record.c
     test_write.c
   CACHE FILEPATH "" FORCE)
   # set(csv_TEST_TARGETS)
@@ -28,7 +27,7 @@ if(BUILD_TESTING)
 
     add_test(${targetname} ${targetname})
     set_tests_properties(${targetname} PROPERTIES
-      WORKING_DIRECTORY ${csv_TEST_DIR}
+      WORKING_DIRECTORY ${csv_WORKING_DIR}
       PASS_REGULAR_EXPRESSION "PASS"
       FAIL_REGULAR_EXPRESSION "FAIL"
       TIMEOUT 120

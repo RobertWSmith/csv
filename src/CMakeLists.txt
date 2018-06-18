@@ -6,7 +6,7 @@ configure_file(
   ${csv_PUBLIC_INCLUDE_DIR}/csv/version.h
 )
 
-add_library(csv csv_dialect.c csv_field.c csv_read.c csv_record.c csv_write.c)
+add_library(csv csv_dialect.c csv_read.c csv_write.c)
 
 target_compile_features(csv PUBLIC c_std_99)
 
@@ -14,9 +14,8 @@ set(csv_PUBLIC_HEADER_FILES
   csv.h
   csv/definitions.h
   csv/dialect.h
-  csv/field.h
   csv/read.h
-  csv/record.h
+  csv/stream.h
   csv/version.h
   csv/write.h
   CACHE FILEPATH "" FORCE)

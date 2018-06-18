@@ -1,100 +1,83 @@
+/**
+ * @file csv/stream.h
+ * @author Robert Smith
+ * @date 2018-06-18
+ * @brief CSV stream callback API
+ */
+
 #ifndef CSV_STREAM_H_
 #define CSV_STREAM_H_
 
 #include <uchar.h>
 
 typedef enum CSV_CHAR_TYPE {
-	CSV_CHAR8 = 0,
-	CSV_CHAR16,
-	CSV_CHAR32
+  CSV_CHAR8,
+  CSV_CHAR16,
+  CSV_CHAR32,
 } CSV_CHAR_TYPE;
+
+
+typedef enum CSV_STREAM_SIGNAL {
+  CSV_GOOD,
+  CSV_EOF,
+  CSV_ERROR,
+} CSV_STREAM_SIGNAL;
+
 
 /**
  * @brief CSV Stream data container for callbacks
- */
-typedef void* csvstream_type;
-
-/**
- * @brief Get next character point from CSV Stream buffer
  *
- * @param[in,out] streamdata  reference to data returned by @c csvstream_open
- *                            and potentially modified by this function. This
- *                            function is responsible for efficiently managing
- *                            the buffer.
- *
- * @return                    next character in the stream
+ * This type represents an input or output datastream and is passed to the
+ * advanced CSV Reader and Writer initializer.
  *
  * @see csvreader_advanced_init
- * @see csvstream_type
- * @see csvstream_open
+ * @see csvwriter_advanced_init
+ * @see csvfield_type
+ * @see csvrecord_type
+ */
+typedef void *csvstream_type;
+
+/**
+ * @brief CSV field type, represents a container for a unique row-column value
+ *
+ * This type is a string analog, and is defined as a generic pointer to enable
+ * various string widths and/or custom structs.
+ *
+ * A call to @c csvstream_savefield should add a null character to the end of
+ * the current CSV field, set the current field at the end of the CSV Record and
+ * set the CSV field buffer to the beginning.
+ *
  * @see csvstream_savefield
- * @see csvstream_close
  */
-typedef char32_t (*csvstream_getnext)(csvstream_type streamdata) csvstream_getnext;
+typedef void *csvfield_type;
 
 /**
- * @brief Finalize field and reset buffer for next field
+ * @brief CSV Record type, represents a container of CSV Fields
  *
- * @param[in,out] streamdata  CSV datastructure
- * @param[out]    field       string output data, char type determined by
- *                            callback
- * @param[out]    length      length of @p field
- *
- * @see csvreader_advanced_init
- * @see csvstream_type
- * @see csvstream_open
- * @see csvstream_getnext
- * @see csvstream_close
+ * This type should be considered as most closely aligned with a single line of
+ * a CSV, or a single record from a SQL database query. This might be defined
+ * as simply as @c csvfield_type* or could be a custom struct.
  */
-typedef void (*csvstream_savefield)(csvstream_type streamdata, void** field, size_t* length) csvstream_savefield;
-
-/**
- * @brief Put next character point from CSV Stream buffer
- *
- * @param[in,out] streamdata  reference to data returned by @c csvstream_open
- *                            and potentially modified by this function. This
- *                            function is responsible for efficiently managing
- *                            the buffer.
- * @param[in]     value       Character to write to the stream.
- *
- * @return                    next character in the stream
- *
- * @see csvreader_advanced_init
- * @see csvstream_type
- * @see csvstream_open
- * @see csvstream_close
- */
-typedef void (*csvstream_putnext)(csvstream_type streamdata, char32_t value) csvstream_putnext;
-
-/**
- * @brief Get next character point from CSV Stream buffer
- *
- * @param[in,out] streamdata  reference to data returned by @c csvstream_open
- *                            and potentially modified by this function. This
- *                            function is responsible for efficiently managing
- *                            the buffer.
- *
- * @return                    next character in the stream
- *
- * @see csvreader_advanced_init
- * @see csvstream_type
- * @see csvstream_open
- * @see csvstream_close
- */
-typedef char32_t (*csvstream_getnext)(csvstream_type streamdata) csvstream_getnext;
-
-/**
- * @brief Close the CSV stream
- *
- * @param[in] streamdata    Data returned from @c csvstream_open, implements the
- *                          proper resource closing procedure.
- *
- * @see csvreader_advanced_init
- * @see csvstream_type
- * @see csvstream_open
- * @see csvstream_getnext
- */
-typedef void (*csvstream_close)(csvstream_type streamdata) csvstream_close;
+typedef void *csvrecord_type;
 
 
-#endif  /* CSV_STREAM_H_ */
+/* reader and writer, optional shutdown method called within the closer */
+typedef void (*csvstream_close)(csvstream_type streamdata);
+
+/* reader only, get next character from stream */
+typedef CSV_STREAM_SIGNAL (*csvstream_getnext)(csvstream_type streamdata,
+                                               char32_t      *value);
+
+/* reader only, append character to existing field buffer */
+typedef void (*csvstream_appendchar)(csvstream_type streamdata,
+                                     char32_t       value);
+
+/* push field back into record */
+typedef void (*csvstream_savefield)(csvstream_type streamdata);
+
+/* finalize record, and return it by reference */
+typedef CSV_CHAR_TYPE (*csvstream_saverecord)(csvstream_type  streamdata,
+                                              csvrecord_type *fields,
+                                              size_t         *length);
+
+#endif /* CSV_STREAM_H_ */

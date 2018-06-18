@@ -15,9 +15,8 @@
 #include "csv/version.h"
 #include "csv/definitions.h"
 
-/* API datastructures */
-#include "csv/field.h"
-#include "csv/record.h"
+/* I/O stream API */
+#include "csv/stream.h"
 
 /* configuration API for read & write */
 #include "csv/dialect.h"
