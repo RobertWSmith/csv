@@ -1,0 +1,3 @@
+"../csv-build/tests/test_read":
+	path: "../csv-build/tests/test_read"
+	cwd: "../csv/tests"
