@@ -26,12 +26,14 @@ void test_CSVReaderInitDestroy(void) {
 
 void test_CSVReaderIrisDataset(void) {
   csvdialect dialect      = csvdialect_init();
-  csvreader  reader       = csvreader_init(dialect, "data/iris.csv");
+  csvreader  reader       = NULL;
   CSV_CHAR_TYPE char_type = CSV_CHAR8;
   char **record           = NULL;
   size_t record_length    = 0;
-  size_t i; // loop counter
+  size_t i                = 0; // loop counter
   csvreturn rc;
+
+  reader = csvreader_init(dialect, "data/iris.csv");
 
   TEST_ASSERT_NOT_NULL(reader);
 

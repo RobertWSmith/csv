@@ -1,7 +1,10 @@
 #ifndef CSV_WRITE_H_
 #define CSV_WRITE_H_
 
+#include <stdio.h>
+
 #include "definitions.h"
+#include "dialect.h"
 #include "stream.h"
 
 /**
@@ -31,14 +34,38 @@ typedef struct csv_writer *csvwriter;
  * @param[in]  dialect  CSV dialect type.
  * @param[in]  filepath Filepath to input CSV
  *
- * @return              Fully initialized CSV Writer, or NULL on error
+ * @return              Fully initialized CSV Writer, or @c NULL on error
  *
  * @see csvdialect_init
+ * @see csvwriter_file_init
  * @see csvwriter_close
  * @see csvwriter_next_record
  */
-csvwriter csvwriter_init(csvdialect dialect,
+csvwriter csvwriter_init(csvdialect  dialect,
                          const char *filepath);
+
+/**
+ * @brief CSV Writer initializer from File object
+ *
+ * @param  dialect CSV Dialect type
+ * @param  fileobj File object, if @c NULL a @c NULL writer will be returned
+ *
+ * @return         Filly initialized CSV Writer, or @c NULL on error
+ *
+ * @see csvdialect_init
+ * @see csvwriter_init
+ * @see csvwriter_close
+ * @see csvwriter_next_record
+ */
+csvwriter csvwriter_file_init(csvdialect dialect,
+                              FILE      *fileobj);
+
+
+csvwriter csvwriter_advanced_init(csvdialect          dialect,
+                                  csvstream_putnext   putnext,
+                                  csvstream_endrecord endrecord,
+                                  csvstream_type      streamdata);
+
 
 /*
  * maybe there isn't an 'advanced' API?
@@ -57,7 +84,7 @@ csvwriter csvwriter_init(csvdialect dialect,
  *
  * @see csvwriter_init
  */
-void csvwriter_close(csvwriter *writer);
+void      csvwriter_close(csvwriter *writer);
 
 /**
  * @brief Set next CSV Record to CSV Writer's file
@@ -69,9 +96,9 @@ void csvwriter_close(csvwriter *writer);
  * @return              CSV Return type to determine if the operation was
  *                      successful
  */
-csvreturn csvwriter_next_record(csvwriter							writer,
-                                const csvrecord_type	record,
-                                size_t								record_length);
+csvreturn csvwriter_next_record(csvwriter            writer,
+                                const csvrecord_type record,
+                                size_t               record_length);
 
 
-#endif  /* CSV_WRITE_H_ */
+#endif /* CSV_WRITE_H_ */
