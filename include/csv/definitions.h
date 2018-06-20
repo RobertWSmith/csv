@@ -92,7 +92,18 @@ inline bool csv_success(csvreturn retcode) {
  * @see csv_success
  */
 inline bool csv_failure(csvreturn retcode) {
-  return !((bool)retcode.succeeded);
+  return !retcode.succeeded;
+}
+
+/**
+ * @brief Verify if EOF signal was returned
+ *
+ * @param  retcode CSV Return type
+ *
+ * @return         boolean, true indicates EOF returned, false indicates no EOF
+ */
+inline bool csv_eof(csvreturn retcode) {
+  return retcode.csv_eof;
 }
 
 #endif /* CSV_DEFINITIONS_H_ */

@@ -75,9 +75,9 @@ csvreader csvreader_file_init(csvdialect dialect,
  * application.
  *
  * @param[in]  dialect        preconfigured CSV Dialect type
- * @param[in]  getnext        Function pointer which returns the next character
+ * @param[in]  getnextchar    Function pointer which returns the next character
  *                            in the stream buffer.
- * @param[in]  appendchar     Function pointer which appends character to
+ * @param[in]  appendfield    Function pointer which appends character to
  *                            current field buffer.
  * @param[in]  savefield      Function pointer which pushes the current field to
  *                            the end of the record buffer and resets the field
@@ -94,12 +94,12 @@ csvreader csvreader_file_init(csvdialect dialect,
  * @see csvstream_getnext
  * @see csvstream_close
  */
-csvreader csvreader_advanced_init(csvdialect           dialect,
-                                  csvstream_getnext    getnext,
-                                  csvstream_appendchar appendchar,
-                                  csvstream_savefield  savefield,
-                                  csvstream_saverecord saverecord,
-                                  csvstream_type       streamdata);
+csvreader csvreader_advanced_init(csvdialect            dialect,
+                                  csvstream_getnextchar getnextchar,
+                                  csvstream_appendfield appendfield,
+                                  csvstream_savefield   savefield,
+                                  csvstream_saverecord  saverecord,
+                                  csvstream_type        streamdata);
 
 /**
  * @brief Set CSV stream closer

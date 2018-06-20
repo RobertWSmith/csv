@@ -65,12 +65,12 @@ typedef void *csvrecord_type;
 typedef void (*csvstream_close)(csvstream_type streamdata);
 
 /* reader only, get next character from stream */
-typedef CSV_STREAM_SIGNAL (*csvstream_getnext)(csvstream_type streamdata,
-                                               char32_t      *value);
+typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(csvstream_type streamdata,
+                                                   char32_t      *value);
 
 /* reader only, append character to existing field buffer */
-typedef void (*csvstream_appendchar)(csvstream_type streamdata,
-                                     char32_t       value);
+typedef void (*csvstream_appendfield)(csvstream_type streamdata,
+                                      char32_t       value);
 
 /* push field back into record */
 typedef void (*csvstream_savefield)(csvstream_type streamdata);
@@ -79,5 +79,24 @@ typedef void (*csvstream_savefield)(csvstream_type streamdata);
 typedef CSV_CHAR_TYPE (*csvstream_saverecord)(csvstream_type  streamdata,
                                               csvrecord_type *fields,
                                               size_t         *length);
+
+/*
+ * return the next field for the writer by reference, return the char type
+ * this is the value prior to processing the dialect rules
+ */
+typedef CSV_CHAR_TYPE (*csvstream_getnextfield)(csvstream_type streamdata,
+                                                csvrecord_type record,
+                                                size_t         record_length,
+                                                csvfield_type *field,
+                                                size_t        *field_length);
+
+/*
+ * write a string to the output stream, when end of record is identified the
+ * string will be the line terminator sequence
+ */
+typedef void (*csvstream_writestring)(csvstream_type streamdata,
+                                      CSV_CHAR_TYPE  char_type,
+                                      csvfield_type  field,
+                                      size_t         length);
 
 #endif /* CSV_STREAM_H_ */

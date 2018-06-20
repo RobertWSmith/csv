@@ -60,12 +60,31 @@ csvwriter csvwriter_init(csvdialect  dialect,
 csvwriter csvwriter_file_init(csvdialect dialect,
                               FILE      *fileobj);
 
+/**
+ * [csvwriter_advanced_init description]
+ *
+ * @param  dialect      [description]
+ * @param  getnextfield [description]
+ * @param  writestring  [description]
+ * @param  streamdata   [description]
+ *
+ * @return              [description]
+ */
+csvwriter csvwriter_advanced_init(csvdialect             dialect,
+                                  csvstream_getnextfield getnextfield,
+                                  csvstream_writestring  writestring,
+                                  csvstream_type         streamdata);
 
-csvwriter csvwriter_advanced_init(csvdialect          dialect,
-                                  csvstream_putnext   putnext,
-                                  csvstream_endrecord endrecord,
-                                  csvstream_type      streamdata);
-
+/**
+ * [csvwriter_set_closer description]
+ *
+ * @param  writer [description]
+ * @param  closer [description]
+ *
+ * @return        [description]
+ */
+csvwriter csvwriter_set_closer(csvwriter       writer,
+                               csvstream_close closer)
 
 /*
  * maybe there isn't an 'advanced' API?
