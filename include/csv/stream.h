@@ -8,21 +8,10 @@
 #ifndef CSV_STREAM_H_
 #define CSV_STREAM_H_
 
-#include <uchar.h>
+#include <stddef.h>
 
-typedef enum CSV_CHAR_TYPE {
-  CSV_CHAR8,
-  CSV_CHAR16,
-  CSV_CHAR32,
-} CSV_CHAR_TYPE;
-
-
-typedef enum CSV_STREAM_SIGNAL {
-  CSV_GOOD,
-  CSV_EOF,
-  CSV_ERROR,
-} CSV_STREAM_SIGNAL;
-
+#include "version.h"
+#include "definitions.h"
 
 /**
  * @brief CSV Stream data container for callbacks
@@ -58,19 +47,19 @@ typedef void *csvfield_type;
  * a CSV, or a single record from a SQL database query. This might be defined
  * as simply as @c csvfield_type* or could be a custom struct.
  */
-typedef void *csvrecord_type;
-
+typedef csvfield_type *csvrecord_type;
 
 /* reader and writer, optional shutdown method called within the closer */
 typedef void (*csvstream_close)(csvstream_type streamdata);
 
 /* reader only, get next character from stream */
-typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(csvstream_type streamdata,
-                                                   char32_t      *value);
+typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(csvstream_type
+                                                   streamdata,
+                                                   csv_comparison_char_type *value);
 
 /* reader only, append character to existing field buffer */
-typedef void (*csvstream_appendfield)(csvstream_type streamdata,
-                                      char32_t       value);
+typedef void (*csvstream_appendfield)(csvstream_type           streamdata,
+                                      csv_comparison_char_type value);
 
 /* push field back into record */
 typedef void (*csvstream_savefield)(csvstream_type streamdata);

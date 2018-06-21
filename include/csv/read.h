@@ -8,8 +8,10 @@
 #ifndef CSV_READ_H_
 #define CSV_READ_H_
 
+#include <stddef.h>
 #include <stdio.h>
 
+#include "version.h"
 #include "definitions.h"
 #include "dialect.h"
 #include "stream.h"

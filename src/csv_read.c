@@ -7,8 +7,14 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "csv.h"
+// #include "csv.h"
+#include "csv/version.h"
+#include "csv/definitions.h"
+#include "csv/dialect.h"
+#include "csv/stream.h"
+#include "csv/read.h"
 #include "dialect_private.h"
 
 typedef enum CSV_READER_PARSER_STATE {
@@ -20,7 +26,7 @@ typedef enum CSV_READER_PARSER_STATE {
   ESCAPE_IN_QUOTED_FIELD,
   QUOTE_IN_QUOTED_FIELD,
   EAT_CRNL,
-  AFTER_ESCAPED_CRNL
+  AFTER_ESCAPED_CRNL,
 } CSV_READER_PARSER_STATE;
 
 struct csv_reader {
@@ -35,263 +41,33 @@ struct csv_reader {
 };
 
 /*
- * Begin - FILE* based callback implementations
+ * private implementation forward declarations.
  */
-typedef struct csv_file_reader {
-  /* if providex, might be null but useful for debug info */
-  char const *filepath;
+typedef struct csv_file_reader *csvfilereader;
 
-  /* needed for the input stream */
-  FILE *file;
-
-  char **record;
-  char  *field;
-  size_t capacity_f;
-  size_t size_f;
-  size_t capacity_r;
-  size_t size_r;
-} *csvfilereader;
-
-csvfilereader csvfilereader_init(void) {
-  csvfilereader fr = NULL;
-
-  if ((fr = malloc(sizeof *fr)) == NULL) return NULL;
-
-  fr->filepath = NULL;
-  fr->file     = NULL;
-
-  /* 256 chosen as a default because this is generally the max
-   * witdth of a SQL database VARCHAR field.
-   */
-  fr->size_f     = 0;
-  fr->capacity_f = 256;
-
-  if ((fr->field = malloc(sizeof *fr->field * fr->capacity_f)) == NULL) {
-    /* couldn't allocate string */
-    free(fr);
-    return NULL;
-  }
-
-  /* 8 is arbitrary, subject to redesign on performance analysis */
-  fr->size_r     = 0;
-  fr->capacity_r = 8;
-
-  if ((fr->record = malloc(sizeof *fr->record * fr->capacity_r)) == NULL) {
-    /* couldn't allocate record array */
-    free(fr->field);
-    free(fr);
-    return NULL;
-  }
-  return fr;
-}
+csvfilereader     csvfilereader_init(void);
+csvfilereader     csv_filepath_open(char const *filepath);
+csvfilereader     csv_file_open(FILE *fileobj);
+CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
+                                       csv_comparison_char_type *value);
+void              csv_file_appendchar(csvstream_type           streamdata,
+                                      csv_comparison_char_type value);
+void              csv_file_savefield(csvstream_type streamdata);
+CSV_CHAR_TYPE     csv_file_saverecord(csvstream_type  streamdata,
+                                      csvrecord_type *fields,
+                                      size_t         *length);
+void              csv_read_filepath_close(csvstream_type streamdata);
+void              csv_read_file_close(csvstream_type streamdata);
+csvreader         _csvreader_init(csvdialect dialect);
+inline void       parse_value(csvreader                reader,
+                              csv_comparison_char_type value);
 
 /*
- * make a file reader from a filepath, shares common logic and implementation
- * with the FILE* initializer.
- */
-csvfilereader csv_filepath_open(char const *filepath) {
-  if (filepath == NULL) return NULL;
-
-  csvfilereader fr = NULL;
-  FILE *fileobj    = NULL;
-
-  if ((fileobj = fopen(filepath, "rb")) == NULL) return NULL;
-
-  if ((fr = csvfilereader_init()) == NULL) {
-    fclose(fileobj);
-    return NULL;
-  }
-
-  fr->filepath = filepath;
-  fr->file     = fileobj;
-  return fr;
-}
-
-/*
- * make a file reader from a supplied FILE*
- */
-csvfilereader csv_file_open(FILE *fileobj) {
-  if (fileobj == NULL) return NULL;
-
-  csvfilereader fr = NULL;
-
-  if ((fr = csvfilereader_init()) == NULL) return NULL;
-
-  fr->filepath = NULL;
-  fr->file     = fileobj;
-  return fr;
-}
-
-CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type streamdata,
-                                       char32_t      *value) {
-  if (streamdata == NULL) {
-    *value = CSV_UNDEFINED_CHAR;
-    return CSV_ERROR;
-  }
-
-  csvfilereader fr = (csvfilereader)streamdata;
-  int c            = fgetc(fr->file);
-
-  if (feof(fr->file)) {
-    *value = 0;
-    return CSV_EOF;
-  }
-
-  if (ferror(fr->file)) {
-    perror("Error detected while reading CSV.");
-    *value = CSV_UNDEFINED_CHAR;
-    return CSV_ERROR;
-  }
-
-  *value = (char32_t)c;
-  return CSV_GOOD;
-}
-
-void csv_file_appendchar(csvstream_type streamdata,
-                         char32_t       value) {
-  if (streamdata == NULL) return;
-
-  csvfilereader fr = (csvfilereader)streamdata;
-
-  /* expand field, if neccessary. hopefully efficiently, needs validation */
-  if ((fr->size_f + 1) > fr->capacity_f) {
-    if (fr->capacity_f > 4096) fr->capacity_f += 1024;
-    else fr->capacity_f *= 2;
-    fr->field = realloc(fr->field, (fr->capacity_f + 1));
-  }
-
-  fr->field[fr->size_f++] = (char)value;
-}
-
-void csv_file_savefield(csvstream_type streamdata) {
-  if (streamdata == NULL) return;
-
-  csvfilereader fr = (csvfilereader)streamdata;
-
-  /* grow field, if neccessary */
-  if ((fr->size_r + 1) > fr->capacity_r) {
-    if (fr->capacity_r > 128) fr->capacity_r += 128;
-    else fr->capacity_r *= 2;
-    fr->record = realloc(fr->record, fr->capacity_r);
-  }
-
-  if ((fr->record[fr->size_r++] =
-         calloc(fr->size_f + 1, sizeof *fr->field)) == NULL) {
-    /* raise some sort of exception... */
-    fr->record[fr->size_r++] = NULL;
-    return;
-  }
-
-  /* copy up to the size of the current field */
-  memcpy(fr->record[fr->size_r], fr->field, fr->size_f);
-
-  /* set field back to the beginning of the field */
-  fr->size_f = 0;
-}
-
-CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
-                                  csvrecord_type *fields,
-                                  size_t         *length) {
-  if (streamdata == NULL) {
-    *fields = NULL;
-    *length = 0;
-    return CSV_CHAR8;
-  }
-
-  csvfilereader fr = (csvfilereader)streamdata;
-
-  /* allocate string array to pass the pointer list to caller */
-  char **record = NULL;
-
-  if ((record = malloc(sizeof *record * fr->size_r)) == NULL) {
-    *fields = NULL;
-    *length = 0;
-    return CSV_CHAR8;
-  }
-
-  for (size_t i = 0; i < fr->size_r; ++i) {
-    record[i] = fr->record[i];
-  }
-
-  /* reset internal field and record index */
-  fr->size_f = 0;
-  fr->size_r = 0;
-
-  /* set outputs, after this the caller owns the memory for the field strings */
-  /* a memory leak will ensue if the caller does not free the memory when */
-  /* completed with it. */
-  *length = fr->size_r;
-  *fields = (csvrecord_type)record;
-
-  /* this enum gives the caller a clue of the appropriate char type for casting
-   */
-
-  /* in general, a custom set of callbacks won't vary in the character types */
-  /* this enum is provided to allow a consistent API between character widths */
-  return CSV_CHAR8;
-}
-
-void csv_read_filepath_close(csvstream_type streamdata) {
-  if (streamdata != NULL) {
-    csvfilereader fr = (csvfilereader)streamdata;
-
-    /* fr->filepath is allocated externally, not freed here because it could be
-     *  a string literal */
-    if (fr->file != NULL) fclose(fr->file);
-
-    if (fr->field != NULL) free(fr->field);
-
-    if (fr->record != NULL) {
-      for (size_t i = 0; i < fr->size_r; ++i) {
-        free(fr->record[i]);
-      }
-      free(fr->record);
-    }
-
-    free(fr);
-  }
-}
-
-void csv_read_file_close(csvstream_type streamdata) {
-  if (streamdata != NULL) {
-    csvfilereader fr = (csvfilereader)streamdata;
-
-    /* fr->filepath is allocated externally, not freed here because it could be
-     *  a string literal */
-
-    /* fr->file is allocated externally, therefore not freed here */
-
-    if (fr->field != NULL) free(fr->field);
-    free(fr);
-  }
-}
-
-/*
- * End - FILE* based callback implementations
+ * end of private forward declarations
  */
 
 /*
- * Null initialized csvreader initializer
- */
-csvreader _csvreader_init(csvdialect dialect) {
-  csvreader reader = NULL;
-
-  if ((reader = malloc(sizeof *reader)) == NULL) return NULL;
-
-  reader->parser_state = START_RECORD;
-  reader->dialect      = (dialect == NULL) ? csvdialect_init() : dialect;
-  reader->streamdata   = NULL;
-  reader->getnextchar  = NULL;
-  reader->appendchar   = NULL;
-  reader->savefield    = NULL;
-  reader->saverecord   = NULL;
-  reader->closer       = NULL;
-
-  return reader;
-}
-
-/*
- * Begin of 'csv/read.h' implementations
+ * API implementations
  */
 csvreader csvreader_init(csvdialect  dialect,
                          const char *filepath) {
@@ -399,13 +175,326 @@ void csvreader_close(csvreader *reader) {
   *reader = NULL;
 }
 
+csvreturn csvreader_next_record(csvreader       reader,
+                                CSV_CHAR_TYPE  *char_type,
+                                csvrecord_type *record,
+                                size_t         *record_length) {
+  csv_comparison_char_type value = 0;
+  CSV_STREAM_SIGNAL signal       = CSV_GOOD;
+
+  do {
+    if ((signal =
+           (*reader->getnextchar)(reader->streamdata,
+                                  &value)) == CSV_GOOD) parse_value(
+        reader,
+        value);
+    else break;
+  } while (reader->parser_state != START_RECORD);
+
+  *char_type =
+    (*reader->saverecord)(reader->streamdata, record, record_length);
+
+  if (signal == CSV_GOOD) {
+    return csvreturn_init(true);
+  }
+  else if (signal == CSV_EOF) {
+    csvreturn rc = csvreturn_init(true);
+    rc.io_eof = 1;
+    return rc;
+  }
+  else {
+    csvreturn rc = csvreturn_init(false);
+    rc.io_error = 1;
+    return rc;
+  }
+}
+
+/*
+ * end of API implementations
+ */
+
+/*
+ * Begin - FILE* based callback implementations
+ */
+
+/*
+ * private implementation struct to manage CSVs which utilize stdio files
+ */
+struct csv_file_reader {
+  /* if providex, might be null but useful for debug info */
+  char const *filepath;
+
+  /* needed for the input stream */
+  FILE *file;
+
+  char **record;
+  char  *field;
+  size_t capacity_f;
+  size_t size_f;
+  size_t capacity_r;
+  size_t size_r;
+};
+
+/*
+ * core struct csv_file_reader * initializer for standardized creation between
+ * both the char* filepath initializer and the FILE* initializer
+ */
+csvfilereader csvfilereader_init(void) {
+  csvfilereader fr = NULL;
+
+  if ((fr = malloc(sizeof *fr)) == NULL) return NULL;
+
+  fr->filepath = NULL;
+  fr->file     = NULL;
+
+  /* 256 chosen as a default because this is generally the max
+   * witdth of a SQL database VARCHAR field.
+   */
+  fr->size_f     = 0;
+  fr->capacity_f = 256;
+
+  if ((fr->field = malloc(sizeof *fr->field * fr->capacity_f)) == NULL) {
+    /* couldn't allocate string */
+    free(fr);
+    return NULL;
+  }
+
+  /* 8 is arbitrary, subject to redesign on performance analysis */
+  fr->size_r     = 0;
+  fr->capacity_r = 8;
+
+  if ((fr->record = malloc(sizeof *fr->record * fr->capacity_r)) == NULL) {
+    /* couldn't allocate record array */
+    free(fr->field);
+    free(fr);
+    return NULL;
+  }
+  return fr;
+}
+
+/*
+ * make a file reader from a filepath, shares common logic and implementation
+ * with the FILE* initializer.
+ */
+csvfilereader csv_filepath_open(char const *filepath) {
+  if (filepath == NULL) return NULL;
+
+  csvfilereader fr = NULL;
+  FILE *fileobj    = NULL;
+
+  if ((fileobj = fopen(filepath, "rb")) == NULL) return NULL;
+
+  if ((fr = csvfilereader_init()) == NULL) {
+    fclose(fileobj);
+    return NULL;
+  }
+
+  fr->filepath = filepath;
+  fr->file     = fileobj;
+  return fr;
+}
+
+/*
+ * make a file reader from a supplied FILE*
+ */
+csvfilereader csv_file_open(FILE *fileobj) {
+  if (fileobj == NULL) return NULL;
+
+  csvfilereader fr = NULL;
+
+  if ((fr = csvfilereader_init()) == NULL) return NULL;
+
+  fr->filepath = NULL;
+  fr->file     = fileobj;
+  return fr;
+}
+
+CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
+                                       csv_comparison_char_type *value) {
+  if (streamdata == NULL) {
+    *value = CSV_UNDEFINED_CHAR;
+    return CSV_ERROR;
+  }
+
+  csvfilereader fr = (csvfilereader)streamdata;
+
+  if (fr->file == NULL) {
+    *value = 0;
+    return CSV_ERROR;
+  }
+
+  int c = fgetc(fr->file);
+
+  if (feof(fr->file)) {
+    *value = 0;
+    return CSV_EOF;
+  }
+
+  if (ferror(fr->file)) {
+    perror("Error detected while reading CSV.");
+    *value = CSV_UNDEFINED_CHAR;
+    return CSV_ERROR;
+  }
+
+  *value = (csv_comparison_char_type)c;
+  return CSV_GOOD;
+}
+
+void csv_file_appendchar(csvstream_type           streamdata,
+                         csv_comparison_char_type value) {
+  if (streamdata == NULL) return;
+
+  csvfilereader fr = (csvfilereader)streamdata;
+
+  /* expand field, if neccessary. hopefully efficiently, needs validation */
+  if ((fr->size_f + 1) > fr->capacity_f) {
+    if (fr->capacity_f > 4096) fr->capacity_f += 1024;
+    else fr->capacity_f *= 2;
+    fr->field = realloc(fr->field, (fr->capacity_f + 1));
+  }
+
+  fr->field[fr->size_f++] = (char)value;
+}
+
+void csv_file_savefield(csvstream_type streamdata) {
+  if (streamdata == NULL) return;
+
+  csvfilereader fr = (csvfilereader)streamdata;
+
+  /* grow field, if neccessary */
+  if ((fr->size_r + 1) > fr->capacity_r) {
+    if (fr->capacity_r > 128) fr->capacity_r += 128;
+    else fr->capacity_r *= 2;
+    fr->record = realloc(fr->record, fr->capacity_r);
+  }
+
+  if ((fr->record[fr->size_r++] =
+         calloc(fr->size_f + 1, sizeof *fr->field)) == NULL) {
+    /* raise some sort of exception... */
+    fr->record[fr->size_r++] = NULL;
+    return;
+  }
+
+  /* copy up to the size of the current field */
+  memcpy(fr->record[fr->size_r], fr->field, fr->size_f);
+
+  /* set field back to the beginning of the field */
+  fr->size_f = 0;
+}
+
+CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
+                                  csvrecord_type *fields,
+                                  size_t         *length) {
+  if (streamdata == NULL) {
+    *fields = NULL;
+    *length = 0;
+    return CSV_CHAR;
+  }
+
+  csvfilereader fr = (csvfilereader)streamdata;
+
+  /* allocate string array to pass the pointer list to caller */
+  char **record = NULL;
+
+  if ((record = malloc(sizeof *record * fr->size_r)) == NULL) {
+    *fields = NULL;
+    *length = 0;
+    return CSV_CHAR;
+  }
+
+  for (size_t i = 0; i < fr->size_r; ++i) {
+    record[i] = fr->record[i];
+  }
+
+  /* reset internal field and record index */
+  fr->size_f = 0;
+  fr->size_r = 0;
+
+  /* set outputs, after this the caller owns the memory for the field strings */
+  /* a memory leak will ensue if the caller does not free the memory when */
+  /* completed with it. */
+  *length = fr->size_r;
+  *fields = (csvrecord_type)record;
+
+  /* this enum gives the caller a clue of the appropriate char type for casting
+   */
+
+  /* in general, a custom set of callbacks won't vary in the character types */
+  /* this enum is provided to allow a consistent API between character widths */
+  return CSV_CHAR;
+}
+
+void csv_read_filepath_close(csvstream_type streamdata) {
+  if (streamdata != NULL) {
+    csvfilereader fr = (csvfilereader)streamdata;
+
+    /* fr->filepath is allocated externally, not freed here because it could be
+     *  a string literal */
+    if (fr->file != NULL) fclose(fr->file);
+
+    if (fr->field != NULL) free(fr->field);
+
+    if (fr->record != NULL) {
+      for (size_t i = 0; i < fr->size_r; ++i) {
+        free(fr->record[i]);
+      }
+      free(fr->record);
+    }
+
+    free(fr);
+  }
+}
+
+void csv_read_file_close(csvstream_type streamdata) {
+  if (streamdata != NULL) {
+    csvfilereader fr = (csvfilereader)streamdata;
+
+    /* fr->filepath is allocated externally, not freed here because it could be
+     *  a string literal */
+
+    /* fr->file is allocated externally, therefore not freed here */
+
+    if (fr->field != NULL) free(fr->field);
+    free(fr);
+  }
+}
+
+/*
+ * End - FILE* based callback implementations
+ */
+
+/*
+ * Null initialized csvreader initializer
+ */
+csvreader _csvreader_init(csvdialect dialect) {
+  csvreader reader = NULL;
+
+  if ((reader = malloc(sizeof *reader)) == NULL) return NULL;
+
+  reader->parser_state = START_RECORD;
+  reader->dialect      = (dialect == NULL) ? csvdialect_init() : csvdialect_copy(
+    dialect);
+  reader->streamdata  = NULL;
+  reader->getnextchar = NULL;
+  reader->appendchar  = NULL;
+  reader->savefield   = NULL;
+  reader->saverecord  = NULL;
+  reader->closer      = NULL;
+
+  return reader;
+}
+
+/*
+ * Begin of 'csv/read.h' implementations
+ */
+
 /*
  * TODO: core parsing logic -- needs to be before 'csvreader_next_record'
  */
 
 /* bool controls 'should continue' (true) or should break switch (false) */
-inline bool parse_start_record(csvreader reader,
-                               char32_t  value) {
+inline bool parse_start_record(csvreader                reader,
+                               csv_comparison_char_type value) {
   if (value == '\0') {
     /* indicates empty record */
     return false;
@@ -420,8 +509,8 @@ inline bool parse_start_record(csvreader reader,
   return true;
 }
 
-inline void parse_start_field(csvreader reader,
-                              char32_t  value) {
+inline void parse_start_field(csvreader                reader,
+                              csv_comparison_char_type value) {
   if ((value == '\0') || (value == '\n') || (value == '\r')) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = value == '\0' ? START_RECORD : EAT_CRNL;
@@ -444,8 +533,8 @@ inline void parse_start_field(csvreader reader,
   }
 }
 
-inline void parse_escaped_char(csvreader reader,
-                               char32_t  value) {
+inline void parse_escaped_char(csvreader                reader,
+                               csv_comparison_char_type value) {
   if ((value == '\n') || (value == '\r')) {
     (*reader->appendchar)(reader->streamdata, value);
     reader->parser_state = AFTER_ESCAPED_CRNL;
@@ -458,8 +547,8 @@ inline void parse_escaped_char(csvreader reader,
   reader->parser_state = IN_FIELD;
 }
 
-inline void parse_in_field(csvreader reader,
-                           char32_t  value) {
+inline void parse_in_field(csvreader                reader,
+                           csv_comparison_char_type value) {
   /* in unquoted field */
   if ((value == '\n') || (value == '\r') || (value == '\0')) {
     (*reader->savefield)(reader->streamdata);
@@ -477,8 +566,8 @@ inline void parse_in_field(csvreader reader,
   }
 }
 
-inline void parse_in_quoted_field(csvreader reader,
-                                  char32_t  value) {
+inline void parse_in_quoted_field(csvreader                reader,
+                                  csv_comparison_char_type value) {
   if (value == '\0') { /* no-op */ }
   else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPE_IN_QUOTED_FIELD;
@@ -494,8 +583,8 @@ inline void parse_in_quoted_field(csvreader reader,
   }
 }
 
-inline void parse_quote_in_quoted_field(csvreader reader,
-                                        char32_t  value) {
+inline void parse_quote_in_quoted_field(csvreader                reader,
+                                        csv_comparison_char_type value) {
   if ((csvdialect_get_quotestyle(reader->dialect) != QUOTE_STYLE_NONE) &&
       (value == csvdialect_get_quotechar(reader->dialect))) {
     /* save "" as " */
@@ -515,8 +604,8 @@ inline void parse_quote_in_quoted_field(csvreader reader,
   }
 }
 
-inline void parse_value(csvreader reader,
-                        char32_t  value) {
+inline void parse_value(csvreader                reader,
+                        csv_comparison_char_type value) {
   switch (reader->parser_state) {
   case START_RECORD:
 
@@ -568,39 +657,5 @@ inline void parse_value(csvreader reader,
     fprintf(stderr, "Undefined CSV Reader Parser State: %d",
             reader->parser_state);
     break;
-  }
-}
-
-csvreturn csvreader_next_record(csvreader       reader,
-                                CSV_CHAR_TYPE  *char_type,
-                                csvrecord_type *record,
-                                size_t         *record_length) {
-  char32_t value           = 0;
-  CSV_STREAM_SIGNAL signal = CSV_GOOD;
-
-  do {
-    if ((signal =
-           (*reader->getnextchar)(reader->streamdata,
-                                  &value)) == CSV_GOOD) parse_value(
-        reader,
-        value);
-    else break;
-  } while (reader->parser_state != START_RECORD);
-
-  *char_type =
-    (*reader->saverecord)(reader->streamdata, record, record_length);
-
-  if (signal == CSV_GOOD) {
-    return csvreturn_init(true);
-  }
-  else if (signal == CSV_EOF) {
-    csvreturn rc = csvreturn_init(true);
-    rc.csv_eof = 1;
-    return rc;
-  }
-  else {
-    csvreturn rc = csvreturn_init(false);
-    rc.csv_io_error = 1;
-    return rc;
   }
 }

@@ -1,8 +1,10 @@
 #ifndef CSV_WRITE_H_
 #define CSV_WRITE_H_
 
+#include <stddef.h>
 #include <stdio.h>
 
+#include "version.h"
 #include "definitions.h"
 #include "dialect.h"
 #include "stream.h"
@@ -84,7 +86,7 @@ csvwriter csvwriter_advanced_init(csvdialect             dialect,
  * @return        [description]
  */
 csvwriter csvwriter_set_closer(csvwriter       writer,
-                               csvstream_close closer)
+                               csvstream_close closer);
 
 /*
  * maybe there isn't an 'advanced' API?

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.9)
 project(csv_external VERSION ${csv_VERSION} LANGUAGES C)
 
 find_package(Git REQUIRED)

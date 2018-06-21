@@ -9,7 +9,6 @@
 
 #include <stddef.h>
 #include <stdbool.h>
-#include <uchar.h>
 
 #include "csv/dialect.h"
 
@@ -48,7 +47,7 @@ csvreturn csvdialect_validate(csvdialect dialect);
  *
  * @see csvdialect_set_delimiter
  */
-char32_t                csvdialect_get_delimiter(csvdialect dialect);
+csv_comparison_char_type csvdialect_get_delimiter(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect double quoting configuration
@@ -59,7 +58,7 @@ char32_t                csvdialect_get_delimiter(csvdialect dialect);
  *
  * @see csvdialect_set_doublequote
  */
-bool                    csvdialect_get_doublequote(csvdialect dialect);
+bool                     csvdialect_get_doublequote(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Escape character
@@ -70,7 +69,7 @@ bool                    csvdialect_get_doublequote(csvdialect dialect);
  *
  * @see csvdialect_set_escapechar
  */
-char32_t                csvdialect_get_escapechar(csvdialect dialect);
+csv_comparison_char_type csvdialect_get_escapechar(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Line Terminator string
@@ -81,7 +80,7 @@ char32_t                csvdialect_get_escapechar(csvdialect dialect);
  *
  * @see csvdialect_set_lineterminator
  */
-CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect);
+CSV_LINETERMINATOR_TYPE  csvdialect_get_lineterminator(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Quoting Character
@@ -92,7 +91,7 @@ CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect);
  *
  * @see csvdialect_set_quotechar
  */
-char32_t                csvdialect_get_quotechar(csvdialect dialect);
+csv_comparison_char_type csvdialect_get_quotechar(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Quoting Style
@@ -103,7 +102,7 @@ char32_t                csvdialect_get_quotechar(csvdialect dialect);
  *
  * @see csvdialect_set_quotestyle
  */
-QUOTE_STYLE             csvdialect_get_quotestyle(csvdialect dialect);
+QUOTE_STYLE              csvdialect_get_quotestyle(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Skip Initial Space configuration
@@ -114,6 +113,6 @@ QUOTE_STYLE             csvdialect_get_quotestyle(csvdialect dialect);
  *
  * @see csvdialect_set_skipinitialspace
  */
-bool                    csvdialect_get_skipinitialspace(csvdialect dialect);
+bool                     csvdialect_get_skipinitialspace(csvdialect dialect);
 
 #endif /* CSV_DIALECT_PRIVATE_H_ */

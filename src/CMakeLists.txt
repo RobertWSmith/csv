@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.9)
 project(csv VERSION ${csv_VERSION} LANGUAGES C)
 
 configure_file(

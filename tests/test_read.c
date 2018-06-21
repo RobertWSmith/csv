@@ -1,9 +1,11 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "csv.h"
 #include "unity.h"
 
 void test_CSVReaderInitDestroy(void) {
+  printf("beginning test_CSVReaderInitDestroy\n");
   csvdialect dialect = csvdialect_init();
   csvreader  reader  = csvreader_init(dialect, NULL);
 
@@ -18,16 +20,19 @@ void test_CSVReaderInitDestroy(void) {
   reader = csvreader_init(dialect, "data/iris.csv");
   TEST_ASSERT_NOT_NULL(reader);
 
+  printf("before csvreader_close\n");
   csvreader_close(&reader);
   TEST_ASSERT_NULL(reader);
 
+  printf("before csvdialect_close\n");
   csvdialect_close(&dialect);
+  printf("ending test_CSVReaderInitDestroy\n");
 }
 
 void test_CSVReaderIrisDataset(void) {
   csvdialect dialect      = csvdialect_init();
   csvreader  reader       = NULL;
-  CSV_CHAR_TYPE char_type = CSV_CHAR8;
+  CSV_CHAR_TYPE char_type = CSV_CHAR;
   char **record           = NULL;
   size_t record_length    = 0;
   size_t i                = 0; // loop counter
@@ -37,13 +42,16 @@ void test_CSVReaderIrisDataset(void) {
 
   TEST_ASSERT_NOT_NULL(reader);
 
-  rc = csvreader_next_record(reader, &char_type, &record, &record_length);
+  rc = csvreader_next_record(reader,
+                             &char_type,
+                             (csvrecord_type *)&record,
+                             &record_length);
 
   // successful return
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
-  TEST_ASSERT_FALSE(rc.csv_eof);
+  TEST_ASSERT_FALSE(rc.io_eof);
 
   // there are exactly 5 fields in this dataset
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
@@ -61,13 +69,16 @@ void test_CSVReaderIrisDataset(void) {
   }
   free(record);
 
-  rc = csvreader_next_record(reader, &char_type, &record, &record_length);
+  rc = csvreader_next_record(reader,
+                             &char_type,
+                             (csvrecord_type *)&record,
+                             &record_length);
 
   // successful return
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
-  TEST_ASSERT_FALSE(rc.csv_eof);
+  TEST_ASSERT_FALSE(rc.io_eof);
 
   // there are exactly 5 fields in this dataset
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
@@ -86,13 +97,16 @@ void test_CSVReaderIrisDataset(void) {
   free(record);
 
   while (true) {
-    rc = csvreader_next_record(reader, &char_type, &record, &record_length);
+    rc = csvreader_next_record(reader,
+                               &char_type,
+                               (csvrecord_type *)&record,
+                               &record_length);
 
     // successful return
     TEST_ASSERT_TRUE(csv_success(rc));
 
     // no eof indicated
-    TEST_ASSERT_FALSE(rc.csv_eof);
+    TEST_ASSERT_FALSE(rc.io_eof);
 
     // there are exactly 5 fields in this dataset
     TEST_ASSERT_EQUAL_UINT(5U, record_length);
@@ -111,9 +125,11 @@ void test_CSVReaderIrisDataset(void) {
 }
 
 int main(int argc, char **argv) {
+  printf("Before all tests\n");
   UNITY_BEGIN();
 
   RUN_TEST(test_CSVReaderInitDestroy);
+  RUN_TEST(test_CSVReaderIrisDataset);
 
   return UNITY_END();
 }

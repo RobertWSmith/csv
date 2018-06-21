@@ -2,16 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <uchar.h>
 
-#include "csv.h"
+// #include "csv.h"
+#include "csv/version.h"
+#include "csv/definitions.h"
+#include "csv/dialect.h"
 #include "dialect_private.h"
 
 struct csv_dialect {
-  QUOTE_STYLE             quotestyle;
-  CSV_LINETERMINATOR_TYPE lineterminator;
-  char32_t                delimiter, escapechar, quotechar;
-  bool                    doublequote, skipinitialspace;
+  QUOTE_STYLE              quotestyle;
+  CSV_LINETERMINATOR_TYPE  lineterminator;
+  csv_comparison_char_type delimiter, escapechar, quotechar;
+  bool                     doublequote, skipinitialspace;
 };
 
 csvdialect csvdialect_init(void) {
@@ -135,7 +137,7 @@ csvreturn csvdialect_validate(csvdialect dialect) {
 
   /*
    * size_t size_b;
-   * const char32_t *string_b;
+   * const csv_comparison_char_type *string_b;
    */
 
   /* string_b = csvdialect_get_lineterminator(dialect, &size_b); */
@@ -163,15 +165,15 @@ csvreturn csvdialect_validate(csvdialect dialect) {
   return rc;
 }
 
-csvreturn csvdialect_set_delimiter(csvdialect dialect,
-                                   char32_t   delimiter) {
+csvreturn csvdialect_set_delimiter(csvdialect               dialect,
+                                   csv_comparison_char_type delimiter) {
   if (dialect == NULL) return csvreturn_init(false);
 
   dialect->delimiter = delimiter;
   return csvreturn_init(true);
 }
 
-char32_t csvdialect_get_delimiter(csvdialect dialect) {
+csv_comparison_char_type csvdialect_get_delimiter(csvdialect dialect) {
   if (dialect == NULL) return CSV_UNDEFINED_CHAR;
 
   return dialect->delimiter;
@@ -191,15 +193,15 @@ bool csvdialect_get_doublequote(csvdialect dialect) {
   return dialect->doublequote;
 }
 
-csvreturn csvdialect_set_escapechar(csvdialect dialect,
-                                    char32_t   escapechar) {
+csvreturn csvdialect_set_escapechar(csvdialect               dialect,
+                                    csv_comparison_char_type escapechar) {
   if (dialect == NULL) return csvreturn_init(false);
 
   dialect->escapechar = escapechar;
   return csvreturn_init(true);
 }
 
-char32_t csvdialect_get_escapechar(csvdialect dialect) {
+csv_comparison_char_type csvdialect_get_escapechar(csvdialect dialect) {
   if (dialect == NULL) return CSV_UNDEFINED_CHAR;
 
   return dialect->escapechar;
@@ -219,15 +221,15 @@ CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect) {
   return dialect->lineterminator;
 }
 
-csvreturn csvdialect_set_quotechar(csvdialect dialect,
-                                   char32_t   quotechar) {
+csvreturn csvdialect_set_quotechar(csvdialect               dialect,
+                                   csv_comparison_char_type quotechar) {
   if (dialect == NULL) return csvreturn_init(false);
 
   dialect->quotechar = quotechar;
   return csvreturn_init(true);
 }
 
-char32_t csvdialect_get_quotechar(csvdialect dialect) {
+csv_comparison_char_type csvdialect_get_quotechar(csvdialect dialect) {
   if (dialect == NULL) return CSV_UNDEFINED_CHAR;
 
   return dialect->quotechar;

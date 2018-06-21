@@ -1,36 +1,19 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "csv.h"
+// #include "csv.h"
+#include "csv/version.h"
+#include "csv/definitions.h"
+#include "csv/dialect.h"
+#include "csv/stream.h"
+#include "csv/write.h"
 
-struct csv_writer {
-  csvdialect             dialect;
-  csvstream_type         streamdata;
-  csvstream_close        closer;
-  csvstream_getnextfield getnextfield;
-  csvstream_writestring  writestring;
-};
+#include "dialect_private.h"
 
-csvwriter _csvwriter_init(csvdialect dialect) {
-  csvwriter writer = NULL;
-
-  if ((writer = malloc(sizeof *writer)) == NULL) {
-    // couldn't initialize
-    return NULL;
-  }
-
-  writer->dialect = dialect;
-
-  if (dialect == NULL) {
-    writer->dialect = csvdialect_init();
-  }
-  writer->streamdata   = NULL;
-  writer->closer       = NULL;
-  writer->getnextfield = NULL;
-  writer->writestring  = NULL;
-
-  return writer;
-}
+/*
+ * private declarations
+ */
 
 typedef struct csv_file_writer {
   const char *filepath;
@@ -38,82 +21,33 @@ typedef struct csv_file_writer {
   size_t      field_position;
 } *csvfilewriter;
 
-csvfilewriter _csvfilewriter_init(void) {
-  csvfilewriter fw = NULL;
-
-  if ((fw = malloc(sizeof *fw)) == NULL) {
-    return NULL;
-  }
-  fw->filepath       = NULL;
-  fw->file           = NULL;
-  fw->field_position = 0;
-  return fw;
-}
-
+csvwriter     _csvwriter_init(csvdialect dialect);
+csvfilewriter _csvfilewriter_init(void);
 CSV_CHAR_TYPE csv_filepath_getnextfield(csvstream_type streamdata,
                                         csvrecord_type record,
                                         size_t         record_length,
                                         csvfield_type *field,
-                                        size_t        *field_length) {
-  if ((streamdata == NULL) || (record == NULL)) {
-    *field        = NULL;
-    *field_length = 0;
-    return CSV_CHAR8;
-  }
-
-  csvfilewriter fw = (csvfilewriter)streamdata;
-
-  if ((fw->field_position + 1) >= record_length) {
-    // TODO: need to figure out what I could use as a end of record indicator
-    fw->field_position = 0;
-    *field             = NULL;
-    *field_length      = 0;
-    return CSV_CHAR8;
-  }
-
-  *field        = record[fw->field_position++];
-  *field_length = strlen(*field);
-  return CSV_CHAR8;
-}
-
+                                        size_t        *field_length);
 void csv_filepath_writestring(csvstream_type      streamdata,
                               CSV_CHAR_TYPE       char_type,
                               const csvfield_type field,
-                              size_t              field_length) {
-  if ((streamdata == NULL) || (field == NULL)) return;
+                              size_t              field_length);
+void csv_write_filepath_closer(csvstream_type streamdata);
 
-  int char_, rc;
+/*
+ * end private delarations
+ */
 
-  csvfilewriter fw = (csvfilewriter)streamdata;
-  char *value      = (char *)field;
-
-  for (size_t i = 0; i < field_length; ++i) {
-    char_ = (int)value[i];
-    rc    = fputc(char_, fw->file);
-
-    if (rc != char_) {
-      if (ferror(fw->file)) {
-        perror("fputc()\n");
-        fprintf(stderr,
-                "Encountered error in file %s at line #%d\n",
-                __FILE__,
-                __LINE__);
-        exit(EXIT_FAILURE);
-      }
-    }
-  }
-}
-
-void csv_write_filepath_closer(csvstream_type streamdata) {
-  if (streamdata == NULL) return;
-
-  csvfilewriter fw = (csvfilewriter)streamdata;
-
-  if (fw->file != NULL) {
-    fclose(fw->file);
-  }
-  free(fw);
-}
+/*
+ * API methods
+ */
+struct csv_writer {
+  csvdialect             dialect;
+  csvstream_type         streamdata;
+  csvstream_close        closer;
+  csvstream_getnextfield getnextfield;
+  csvstream_writestring  writestring;
+};
 
 csvwriter csvwriter_init(csvdialect  dialect,
                          const char *filepath) {
@@ -158,8 +92,6 @@ void csvwriter_close(csvwriter *writer) {
 
   if (w->dialect != NULL) csvdialect_close(&(w->dialect));
 
-  if (w->file != NULL) fclose(w->file);
-
   free(w);
   *writer = NULL;
 }
@@ -181,11 +113,11 @@ csvwriter csvwriter_advanced_init(csvdialect             dialect,
   return writer;
 }
 
-csvwriter csvwriter_set_closer(csvwriter writer, csvstream_close closer) {
+csvwriter csvwriter_set_closer(csvwriter       writer,
+                               csvstream_close closer) {
   if (writer == NULL) return NULL;
 
   writer->closer = closer;
-
   return writer;
 }
 
@@ -194,3 +126,112 @@ csvreturn csvwriter_next_record(csvwriter            writer,
                                 size_t               record_length) {
   return csvreturn_init(false);
 }
+
+/*
+ * end API implementation
+ */
+
+/*
+ * begin private implementation
+ */
+csvwriter _csvwriter_init(csvdialect dialect) {
+  csvwriter writer = NULL;
+
+  if ((writer = malloc(sizeof *writer)) == NULL) {
+    // couldn't initialize
+    return NULL;
+  }
+
+  writer->dialect = dialect;
+
+  if (dialect == NULL) {
+    writer->dialect = csvdialect_init();
+  }
+  writer->streamdata   = NULL;
+  writer->closer       = NULL;
+  writer->getnextfield = NULL;
+  writer->writestring  = NULL;
+
+  return writer;
+}
+
+csvfilewriter _csvfilewriter_init(void) {
+  csvfilewriter fw = NULL;
+
+  if ((fw = malloc(sizeof *fw)) == NULL) {
+    return NULL;
+  }
+  fw->filepath       = NULL;
+  fw->file           = NULL;
+  fw->field_position = 0;
+  return fw;
+}
+
+CSV_CHAR_TYPE csv_filepath_getnextfield(csvstream_type streamdata,
+                                        csvrecord_type record,
+                                        size_t         record_length,
+                                        csvfield_type *field,
+                                        size_t        *field_length) {
+  if ((streamdata == NULL) || (record == NULL)) {
+    *field        = NULL;
+    *field_length = 0;
+    return CSV_CHAR;
+  }
+
+  csvfilewriter fw = (csvfilewriter)streamdata;
+
+  if ((fw->field_position + 1) >= record_length) {
+    // TODO: need to figure out what I could use as a end of record indicator
+    fw->field_position = 0;
+    *field             = NULL;
+    *field_length      = 0;
+    return CSV_CHAR;
+  }
+
+  *field        = record[fw->field_position++];
+  *field_length = strlen(*field);
+  return CSV_CHAR;
+}
+
+void csv_filepath_writestring(csvstream_type      streamdata,
+                              CSV_CHAR_TYPE       char_type,
+                              const csvfield_type field,
+                              size_t              field_length) {
+  if ((streamdata == NULL) || (field == NULL)) return;
+
+  int char_, rc;
+
+  csvfilewriter fw = (csvfilewriter)streamdata;
+  char *value      = (char *)field;
+
+  for (size_t i = 0; i < field_length; ++i) {
+    char_ = (int)value[i];
+    rc    = fputc(char_, fw->file);
+
+    if (rc != char_) {
+      if (ferror(fw->file)) {
+        perror("fputc()\n");
+        fprintf(stderr,
+                "Encountered error in file %s at line #%d\n",
+                __FILE__,
+                __LINE__);
+        exit(EXIT_FAILURE);
+      }
+    }
+  }
+}
+
+void csv_write_filepath_closer(csvstream_type streamdata) {
+  if (streamdata == NULL) return;
+
+  csvfilewriter fw = (csvfilewriter)streamdata;
+
+  if (fw->file != NULL) {
+    fclose(fw->file);
+  }
+  free(fw);
+}
+
+/*
+ * end private implementation
+ */

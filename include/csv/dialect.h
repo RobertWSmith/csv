@@ -10,48 +10,9 @@
 
 #include <stddef.h>
 #include <stdbool.h>
-#include <uchar.h>
 
+#include "version.h"
 #include "definitions.h"
-
-#define _CSV_LINETERMINATOR_CRNL_CHAR     "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_WCHAR   L"\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHARU8 u8 "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHAR16  u "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHAR32  U "\r\n"
-
-#define _CSV_LINETERMINATOR_CR_CHAR     "\r"
-#define _CSV_LINETERMINATOR_CR_WCHAR   L"\r"
-#define _CSV_LINETERMINATOR_CR_CHARU8 u8 "\r"
-#define _CSV_LINETERMINATOR_CR_CHAR16  u "\r"
-#define _CSV_LINETERMINATOR_CR_CHAR32  U "\r"
-
-#define _CSV_LINETERMINATOR_NL_CHAR     "\n"
-#define _CSV_LINETERMINATOR_NL_WCHAR   L"\n"
-#define _CSV_LINETERMINATOR_NL_CHARU8 u8 "\n"
-#define _CSV_LINETERMINATOR_NL_CHAR16  u "\n"
-#define _CSV_LINETERMINATOR_NL_CHAR32  U "\n"
-
-/* borrowed from https://stackoverflow.com/a/6864861/2788895 */
-#if defined(_WIN32) || defined(_WIN64) /* begin os detection */
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR   _CSV_LINETERMINATOR_CRNL_CHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR  _CSV_LINETERMINATOR_CRNL_WCHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_CRNL_CHARU8
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_CRNL_CHAR16
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_CRNL_CHAR32
-#elif defined(macintosh) /* OS 9 - very old */
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR   _CSV_LINETERMINATOR_CR_CHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR  _CSV_LINETERMINATOR_CR_WCHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_CR_CHARU8
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_CR_CHAR16
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_CR_CHAR32
-#else /* *nix case */
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR   _CSV_LINETERMINATOR_NL_CHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR  _CSV_LINETERMINATOR_NL_WCHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_NL_CHARU8
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_NL_CHAR16
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_NL_CHAR32
-#endif /* end os detection */
 
 /**
  * @brief CSV Quoting Style
@@ -150,8 +111,8 @@ void       csvdialect_close(csvdialect *dialect);
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn  csvdialect_set_delimiter(csvdialect dialect,
-                                    char32_t   delimiter);
+csvreturn  csvdialect_set_delimiter(csvdialect               dialect,
+                                    csv_comparison_char_type delimiter);
 
 /**
  * @brief Set CSV Dialect quote character escape configuration
@@ -223,8 +184,8 @@ csvreturn csvdialect_set_doublequote(csvdialect dialect,
  * @see csvdialect_close
  * @see csvdialect_set_doublequote
  */
-csvreturn csvdialect_set_escapechar(csvdialect dialect,
-                                    char32_t   escapechar);
+csvreturn csvdialect_set_escapechar(csvdialect               dialect,
+                                    csv_comparison_char_type escapechar);
 
 /**
  * @brief Set CSV Dialect Lineterminator sequence
@@ -276,8 +237,8 @@ csvreturn csvdialect_set_lineterminator(csvdialect              dialect,
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn csvdialect_set_quotechar(csvdialect dialect,
-                                   char32_t   quotechar);
+csvreturn csvdialect_set_quotechar(csvdialect               dialect,
+                                   csv_comparison_char_type quotechar);
 
 /**
  * @brief Set CSV Dialect Quoting Style
