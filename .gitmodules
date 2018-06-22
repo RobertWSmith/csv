@@ -1,3 +1,6 @@
 [submodule "external/Unity"]
 	path = external/Unity
 	url = https://github.com/ThrowTheSwitch/Unity.git
+[submodule "external/zf_log"]
+	path = external/zf_log
+	url = https://github.com/wonder-mice/zf_log.git

@@ -8,6 +8,8 @@ configure_file(
 
 add_library(csv csv_dialect.c csv_read.c csv_write.c)
 
+target_link_libraries(csv PUBLIC zf_log)
+
 target_compile_features(csv PUBLIC c_std_99)
 
 set(csv_PUBLIC_HEADER_FILES

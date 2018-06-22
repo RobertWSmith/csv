@@ -26,4 +26,26 @@ else()
   target_include_directories(unity PUBLIC ${Unity_ROOT}/src)
   target_compile_features(unity PUBLIC c_std_11)
   target_compile_options(unity PRIVATE -Wall -Og)
+
+  include(ExternalProject)
+
+  set(zf_log_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/zf_log CACHE PATH "" FORCE)
+
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} submodule update --init -- external/zf_log
+    WORKING_DIRECTORY ${csv_PROJECT_ROOT_DIR}
+  )
+  # tagged on 2017-11-14, specified to ensure no update surprises
+  # use this checksum hash if the tags are ever modified
+  # "287e076962ec711cd2bdf08364a8df9ce51e106b"
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} checkout "fb22f401c07fcea711c55f1300ae981938053141"
+    WORKING_DIRECTORY ${zf_log_ROOT}
+  )
+
+  set(zf_log_INCLUDE_DIR ${zf_log_ROOT}/zf_log CACHE PATH "" FORCE)
+
+  add_library(zf_log STATIC ${zf_log_ROOT}/zf_log/zf_log.c)
+  target_include_directories(zf_log PUBLIC ${zf_log_ROOT}/zf_log)
+  target_compile_features(zf_log PUBLIC c_std_11)
 endif()

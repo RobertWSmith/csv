@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef ZF_LOG_LEVEL
+# define ZF_LOG_LEVEL ZF_LOG_DEBUG
+#endif /* ZF_LOG_LEVEL */
+#include "zf_log.h"
+
 // #include "csv.h"
 #include "csv/version.h"
 #include "csv/definitions.h"
@@ -71,12 +76,14 @@ inline void       parse_value(csvreader                reader,
  */
 csvreader csvreader_init(csvdialect  dialect,
                          const char *filepath) {
+  ZF_LOGI("`csvreader_init` called dialect: %p, filepath: %s", dialect, filepath);
   csvreader reader = NULL;
   csvfilereader fr = NULL;
 
-  if ((fr = csv_filepath_open(filepath)) == NULL)
-    /* couldn't allocate the IO struct */
+  if ((fr = csv_filepath_open(filepath)) == NULL) {
+    ZF_LOGI("`csvfilereader` could not be allocated.");
     return NULL;
+  }
 
   /* broke out of if statement because I find that visually difficult to read */
   reader = csvreader_advanced_init(dialect,
@@ -86,25 +93,33 @@ csvreader csvreader_init(csvdialect  dialect,
                                    &csv_file_saverecord,
                                    (csvstream_type)fr);
 
-  if (reader != NULL) reader = csvreader_set_closer(reader,
-                                                    &csv_read_filepath_close);
+  if (reader != NULL) {
+    reader = csvreader_set_closer(reader, &csv_read_filepath_close);
+  }
 
   /* final validation */
   if (reader == NULL) {
+    ZF_LOGI("`csvreader` could not be allocated");
     csv_read_filepath_close((csvstream_type)fr);
     return NULL;
   }
+
+  ZF_LOGD("`csvreader` successfully allocated at: %p", reader);
   return reader;
 }
 
 csvreader csvreader_file_init(csvdialect dialect,
                               FILE      *fileobj) {
+  ZF_LOGI("`csvreader_file_init` called dialect: %p, fileobj: %p",
+          dialect,
+          fileobj);
   csvreader reader = NULL;
   csvfilereader fr = NULL;
 
-  if ((fr = csv_file_open(fileobj)) == NULL)
-    /* couldn't allocate the IO struct */
+  if ((fr = csv_file_open(fileobj)) == NULL) {
+    ZF_LOGI("`csvfilereader` could not be allocated.");
     return NULL;
+  }
 
   /* broke out of if statement because I find that visually difficult to read */
   reader = csvreader_advanced_init(dialect,
@@ -114,13 +129,18 @@ csvreader csvreader_file_init(csvdialect dialect,
                                    &csv_file_saverecord,
                                    (csvstream_type)fr);
 
-  if (reader != NULL) reader = csvreader_set_closer(reader, &csv_read_file_close);
+  if (reader != NULL) {
+    reader = csvreader_set_closer(reader, &csv_read_file_close);
+  }
 
   /* final validation */
   if (reader == NULL) {
+    ZF_LOGI("`csvreader` could not be allocated");
     csv_read_file_close((csvstream_type)fr);
     return NULL;
   }
+
+  ZF_LOGD("`csvreader` successfully allocated at: %p", reader);
   return reader;
 }
 
@@ -130,10 +150,22 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
                                   csvstream_savefield   savefield,
                                   csvstream_saverecord  saverecord,
                                   csvstream_type        streamdata) {
+  ZF_LOGI("`csvreader_advanced_init` called");
+
   /* validation step */
   /* other than dialect, all arguments must be non-null */
   if ((getnextchar == NULL) || (appendchar == NULL) || (savefield == NULL) ||
-      (saverecord == NULL) || (streamdata == NULL)) return NULL;
+      (saverecord == NULL) || (streamdata == NULL)) {
+    ZF_LOGI(
+      "`csvreader_advance_init` failed due to unexpected NULL.\ngetnextchar: %s\nappendchar:  %s\nsavefield:   %s\nsaverecord:  %s\nstreamdata:  %s\n",
+      (getnextchar == NULL) ? "NULL" : "NOT NULL",
+      (appendchar == NULL) ? "NULL" : "NOT NULL",
+      (savefield == NULL) ? "NULL" : "NOT NULL",
+      (saverecord == NULL) ? "NULL" : "NOT NULL",
+      (streamdata == NULL) ? "NULL" : "NOT NULL"
+      );
+    return NULL;
+  }
 
   csvreader reader = _csvreader_init(dialect);
 
@@ -148,17 +180,26 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
 
 csvreader csvreader_set_closer(csvreader       reader,
                                csvstream_close closer) {
-  if (reader == NULL) return NULL;
+  if (reader == NULL) {
+    ZF_LOGI("`csvreader_set_closer` called with NULL `reader`.");
+    return NULL;
+  }
 
   reader->closer = closer;
+  ZF_LOGD("`csvreader_set_closer` succeeded.");
   return reader;
 }
 
 void csvreader_close(csvreader *reader) {
   /* optimization opportunity after test success */
+  ZF_LOGI("`csvreader_close` called.");
   csvreader r = *reader;
 
-  if (r == NULL) return;
+
+  if (r == NULL) {
+    ZF_LOGI("`reader` referenced a NULL pointer, exiting function early.");
+    return;
+  }
 
   /* optimization opportunity after test success */
   csvdialect d;
@@ -169,8 +210,13 @@ void csvreader_close(csvreader *reader) {
   csvstream_close closer;
   closer = r->closer;
 
-  if (closer != NULL) (*closer)(r->streamdata);
+  if (closer != NULL) {
+    ZF_LOGI(
+      "Calling the `csvstream_close` function supplied to close the stream data");
+    (*closer)(r->streamdata);
+  }
 
+  ZF_LOGD("Freeing the `csvreader`");
   free(r);
   *reader = NULL;
 }
@@ -179,34 +225,51 @@ csvreturn csvreader_next_record(csvreader       reader,
                                 CSV_CHAR_TYPE  *char_type,
                                 csvrecord_type *record,
                                 size_t         *record_length) {
+  ZF_LOGI("`csvreader_next_record` called");
   csv_comparison_char_type value = 0;
   CSV_STREAM_SIGNAL signal       = CSV_GOOD;
 
-  do {
-    if ((signal =
-           (*reader->getnextchar)(reader->streamdata,
-                                  &value)) == CSV_GOOD) parse_value(
-        reader,
-        value);
-    else break;
-  } while (reader->parser_state != START_RECORD);
+  ZF_LOGD("Beginning `getnextchar` loop.");
+
+  while (true) {
+    signal = (*reader->getnextchar)(reader->streamdata, &value);
+    ZF_LOGD("signal returned: %d, character returned: %c",
+            signal,
+            (char)value);
+
+    if (signal == CSV_GOOD) {
+      ZF_LOGD("Signal indicates good value returned, beginning to parse.");
+      parse_value(reader, value);
+    }
+    else {
+      ZF_LOGD("Signal indicates EOF or Error, ending loop.");
+      break;
+    }
+
+    if (reader->parser_state == START_RECORD) {
+      ZF_LOGD(
+        "Parser state indicates the record boundry has been encountered, breaking out of loop.");
+      break;
+    }
+  }
 
   *char_type =
     (*reader->saverecord)(reader->streamdata, record, record_length);
 
-  if (signal == CSV_GOOD) {
-    return csvreturn_init(true);
-  }
-  else if (signal == CSV_EOF) {
+  if (signal == CSV_EOF) {
+    ZF_LOGI("CSV Reader found EOF reached.");
     csvreturn rc = csvreturn_init(true);
     rc.io_eof = 1;
     return rc;
   }
-  else {
+  else if (signal != CSV_GOOD) {
+    ZF_LOGI("CSV Reader found IO error state encountered.");
     csvreturn rc = csvreturn_init(false);
     rc.io_error = 1;
     return rc;
   }
+  ZF_LOGI("CSV Reader end of record, IO state is good.");
+  return csvreturn_init(true);
 }
 
 /*
@@ -240,9 +303,14 @@ struct csv_file_reader {
  * both the char* filepath initializer and the FILE* initializer
  */
 csvfilereader csvfilereader_init(void) {
+  ZF_LOGI("`csvfilereader_init` called");
+
   csvfilereader fr = NULL;
 
-  if ((fr = malloc(sizeof *fr)) == NULL) return NULL;
+  if ((fr = malloc(sizeof *fr)) == NULL) {
+    ZF_LOGD("`csvfilereader` could not be allocated");
+    return NULL;
+  }
 
   fr->filepath = NULL;
   fr->file     = NULL;
@@ -254,7 +322,8 @@ csvfilereader csvfilereader_init(void) {
   fr->capacity_f = 256;
 
   if ((fr->field = malloc(sizeof *fr->field * fr->capacity_f)) == NULL) {
-    /* couldn't allocate string */
+    ZF_LOGD("`csvfilereader->field` could not be allocated with a size of %zu",
+            fr->capacity_f);
     free(fr);
     return NULL;
   }
@@ -264,11 +333,13 @@ csvfilereader csvfilereader_init(void) {
   fr->capacity_r = 8;
 
   if ((fr->record = malloc(sizeof *fr->record * fr->capacity_r)) == NULL) {
-    /* couldn't allocate record array */
+    ZF_LOGD("`csvfilereader->record` could not be allocated with a size of %zu",
+            fr->capacity_r);
     free(fr->field);
     free(fr);
     return NULL;
   }
+  ZF_LOGD("`csvfilereader` successfully allocated atL %p", fr);
   return fr;
 }
 
@@ -277,20 +348,30 @@ csvfilereader csvfilereader_init(void) {
  * with the FILE* initializer.
  */
 csvfilereader csv_filepath_open(char const *filepath) {
-  if (filepath == NULL) return NULL;
+  ZF_LOGI("`csv_filepath_open` called with filepath: `%s`", filepath);
+
+  if (filepath == NULL) {
+    ZF_LOGD("`csvfilereader` filepath cannot be a NULL string, returning NULL.");
+    return NULL;
+  }
 
   csvfilereader fr = NULL;
   FILE *fileobj    = NULL;
 
-  if ((fileobj = fopen(filepath, "rb")) == NULL) return NULL;
+  if ((fileobj = fopen(filepath, "rb")) == NULL) {
+    ZF_LOGD("`csvfilereader` Filepath could not be opened with a call to `fopen`.");
+    return NULL;
+  }
 
   if ((fr = csvfilereader_init()) == NULL) {
+    ZF_LOGD("`csvfilereader` could not be allocated.");
     fclose(fileobj);
     return NULL;
   }
 
   fr->filepath = filepath;
   fr->file     = fileobj;
+  ZF_LOGD("`csvfilereader` successfully allocated.");
   return fr;
 }
 
@@ -298,20 +379,33 @@ csvfilereader csv_filepath_open(char const *filepath) {
  * make a file reader from a supplied FILE*
  */
 csvfilereader csv_file_open(FILE *fileobj) {
-  if (fileobj == NULL) return NULL;
+  ZF_LOGI("`csv_file_open` called with `fileobj`: %p", fileobj);
+
+  if (fileobj == NULL) {
+    ZF_LOGD("`csvfilereader` `fileobj` cannot be NULL");
+    return NULL;
+  }
 
   csvfilereader fr = NULL;
 
-  if ((fr = csvfilereader_init()) == NULL) return NULL;
+  if ((fr = csvfilereader_init()) == NULL) {
+    ZF_LOGD("`csvfilereader` could not be allocated.");
+    return NULL;
+  }
 
   fr->filepath = NULL;
   fr->file     = fileobj;
+  ZF_LOGD("`csvfilereader` successfully allocated.");
   return fr;
 }
 
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
                                        csv_comparison_char_type *value) {
+  ZF_LOGI("`csv_file_getnextchar` called ");
+
   if (streamdata == NULL) {
+    ZF_LOGD(
+      "`csvstream_type` provided was NULL, and must point to a valid memory address.");
     *value = CSV_UNDEFINED_CHAR;
     return CSV_ERROR;
   }
@@ -319,67 +413,119 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
   csvfilereader fr = (csvfilereader)streamdata;
 
   if (fr->file == NULL) {
+    ZF_LOGD(
+      "`csvstream_type` `file` provided was NULL, and must point to a valid memory address for a `FILE*`.");
     *value = 0;
     return CSV_ERROR;
   }
 
+  ZF_LOGD("`csv_file_getnextchar` prior to calling `fgetc(fr->file)`");
   int c = fgetc(fr->file);
+  ZF_LOGD("`csv_file_getnextchar` after calling `fgetc(fr->file)`");
 
   if (feof(fr->file)) {
+    ZF_LOGD("End of file indicator encountered.");
     *value = 0;
     return CSV_EOF;
   }
 
   if (ferror(fr->file)) {
+    ZF_LOGD("IO Error Encountered.");
     perror("Error detected while reading CSV.");
     *value = CSV_UNDEFINED_CHAR;
     return CSV_ERROR;
   }
 
   *value = (csv_comparison_char_type)c;
+  ZF_LOGD("`csv_file_getnextchar` comlpeted with %c", *value);
   return CSV_GOOD;
 }
 
 void csv_file_appendchar(csvstream_type           streamdata,
                          csv_comparison_char_type value) {
-  if (streamdata == NULL) return;
+  ZF_LOGI("`csv_file_appendchar` called with value argument `%c`", (char)value);
+
+  if (streamdata == NULL) {
+    ZF_LOGD("`csvstream_type` provided was NULL, bad value");
+    return;
+  }
 
   csvfilereader fr = (csvfilereader)streamdata;
 
   /* expand field, if neccessary. hopefully efficiently, needs validation */
-  if ((fr->size_f + 1) > fr->capacity_f) {
-    if (fr->capacity_f > 4096) fr->capacity_f += 1024;
-    else fr->capacity_f *= 2;
+  if ((fr->size_f + 1) >= fr->capacity_f) {
+    size_t orig_cap = fr->capacity_f;
+
+    ZF_LOGD(
+      "`csvfilereader` field size required exceeds capacity, calling `realloc` to expand");
+
+    if (fr->capacity_f > 4096) {
+      ZF_LOGD("`csvfilereader` field is greater than 4KiB, expanding by 1KiB");
+      fr->capacity_f += 1024;
+    }
+    else {
+      ZF_LOGD(
+        "`csvfilereader` field is less than 4KiB, doubling current capacity");
+      fr->capacity_f *= 2;
+    }
     fr->field = realloc(fr->field, (fr->capacity_f + 1));
+    ZF_LOGI("`csvfilereader` field reallocated to new size of: %d",
+            fr->capacity_f);
+
+    memset((fr->field + fr->size_f), 0, ((fr->capacity_f + 1) - fr->size_f));
   }
 
   fr->field[fr->size_f++] = (char)value;
+  ZF_LOGD("Appending character to field: `%c` at position: %d",
+          (char)value,
+          fr->size_f);
 }
 
 void csv_file_savefield(csvstream_type streamdata) {
-  if (streamdata == NULL) return;
+  ZF_LOGI("`csv_file_savefield` called");
 
-  csvfilereader fr = (csvfilereader)streamdata;
-
-  /* grow field, if neccessary */
-  if ((fr->size_r + 1) > fr->capacity_r) {
-    if (fr->capacity_r > 128) fr->capacity_r += 128;
-    else fr->capacity_r *= 2;
-    fr->record = realloc(fr->record, fr->capacity_r);
+  if (streamdata == NULL) {
+    ZF_LOGD("`csvstream_type` provided was NULL, bad value");
+    return;
   }
 
-  if ((fr->record[fr->size_r++] =
-         calloc(fr->size_f + 1, sizeof *fr->field)) == NULL) {
-    /* raise some sort of exception... */
-    fr->record[fr->size_r++] = NULL;
+  csvfilereader fr = (csvfilereader)streamdata;
+  char *temp       = NULL;
+
+  /* grow field, if neccessary */
+  if ((fr->size_r + 1) >= fr->capacity_r) {
+    ZF_LOGD(
+      "`csvfilereader` record size required exceeds capacity, calling `realloc` to expand");
+
+    if (fr->capacity_r > 128) {
+      ZF_LOGD(
+        "`csvfilereader` record capacity greater than 128, expanding by 128.");
+      fr->capacity_r += 128;
+    }
+    else {
+      ZF_LOGD("`csvfilereader` record capacity less than 128, doubling capacity.");
+      fr->capacity_r *= 2;
+    }
+    fr->record = realloc(fr->record, fr->capacity_r);
+    ZF_LOGI("`csvfilereader` record reallocated to new size of: %d",
+            fr->capacity_r);
+  }
+
+  if ((temp = calloc(fr->size_f + 1, sizeof *fr->field)) == NULL) {
+    ZF_LOGD("`csvfilereader` record field could not be allocated.");
     return;
   }
 
   /* copy up to the size of the current field */
-  memcpy(fr->record[fr->size_r], fr->field, fr->size_f);
+  ZF_LOGD("Beginning to copy field to temp.");
+  memcpy(temp, fr->field, fr->size_f);
+  ZF_LOGD("Completed copying field to temp, value: `%s`.", temp);
+  fr->record[fr->size_r++] = temp;
 
   /* set field back to the beginning of the field */
   fr->size_f = 0;
+  memset(fr->field, 0, fr->capacity_f);
+  ZF_LOGD("Reset field buffer to filled with \'\\0\' characters.");
 }
 
 CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
