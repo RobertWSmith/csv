@@ -25,7 +25,7 @@ static void file_output_close(void)
 
 static void file_output_open(const char *const log_path)
 {
-  _log_file = fopen(log_path, "a");
+  _log_file = fopen(log_path, "w");
 
   if (!_log_file)
   {
@@ -77,6 +77,7 @@ void test_CSVReaderIrisDataset(void) {
 
   TEST_ASSERT_NOT_NULL(reader);
 
+  ZF_LOGI("record length: %lu", record_length);
   ZF_LOGI("`csvreader_next_record` called");
   rc = csvreader_next_record(reader,
                              &char_type,
@@ -88,12 +89,15 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
-  // TEST_ASSERT_FALSE(rc.io_eof);
+  ZF_LOGI("`csvreturn.io_eof`: %s", rc.io_eof ? "true": "false");
+  TEST_ASSERT_FALSE(rc.io_eof);
 
   // no error indicated
-  // TEST_ASSERT_FALSE(rc.io_error);
+  ZF_LOGI("`csvreturn.io_error`: %s", rc.io_error ? "true": "false");
+  TEST_ASSERT_FALSE(rc.io_error);
 
   // there are exactly 5 fields in this dataset
+  ZF_LOGI("record length: %lu", record_length);
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
 
   // value equivalence for the header row
@@ -118,9 +122,15 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
+  ZF_LOGI("`csvreturn.io_eof`: %s", rc.io_eof ? "true": "false");
   TEST_ASSERT_FALSE(rc.io_eof);
 
+  // no error indicated
+  ZF_LOGI("`csvreturn.io_error`: %s", rc.io_error ? "true": "false");
+  TEST_ASSERT_FALSE(rc.io_error);
+
   // there are exactly 5 fields in this dataset
+  ZF_LOGI("record length: %zu", record_length);
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
 
   // value equivalence for the header row

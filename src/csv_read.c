@@ -253,8 +253,9 @@ csvreturn csvreader_next_record(csvreader       reader,
     }
   }
 
-  *char_type =
-    (*reader->saverecord)(reader->streamdata, record, record_length);
+  size_t len = 0;
+  *char_type = (*reader->saverecord)(reader->streamdata, record, &len);
+  *record_length = len;
 
   if (signal == CSV_EOF) {
     ZF_LOGI("CSV Reader found EOF reached.");
@@ -322,8 +323,8 @@ csvfilereader csvfilereader_init(void) {
   fr->capacity_f = 256;
 
   if ((fr->field = malloc(sizeof *fr->field * fr->capacity_f)) == NULL) {
-    ZF_LOGD("`csvfilereader->field` could not be allocated with a size of %zu",
-            fr->capacity_f);
+    ZF_LOGD("`csvfilereader->field` could not be allocated with a size of %lu",
+            (long unsigned int)fr->capacity_f);
     free(fr);
     return NULL;
   }
@@ -333,8 +334,8 @@ csvfilereader csvfilereader_init(void) {
   fr->capacity_r = 8;
 
   if ((fr->record = malloc(sizeof *fr->record * fr->capacity_r)) == NULL) {
-    ZF_LOGD("`csvfilereader->record` could not be allocated with a size of %zu",
-            fr->capacity_r);
+    ZF_LOGD("`csvfilereader->record` could not be allocated with a size of %lu",
+            (long unsigned int)fr->capacity_r);
     free(fr->field);
     free(fr);
     return NULL;
@@ -402,6 +403,7 @@ csvfilereader csv_file_open(FILE *fileobj) {
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
                                        csv_comparison_char_type *value) {
   ZF_LOGI("`csv_file_getnextchar` called ");
+  int c = 0;
 
   if (streamdata == NULL) {
     ZF_LOGD(
@@ -420,7 +422,11 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
   }
 
   ZF_LOGD("`csv_file_getnextchar` prior to calling `fgetc(fr->file)`");
-  int c = fgetc(fr->file);
+  if ((c = fgetc(fr->file)) == EOF) {
+    *value = (csv_comparison_char_type)c;
+    ZF_LOGD("`csv_file_getnextchar` comlpeted with %c", (char)(*value));
+    return CSV_GOOD;
+  }
   ZF_LOGD("`csv_file_getnextchar` after calling `fgetc(fr->file)`");
 
   if (feof(fr->file)) {
@@ -435,9 +441,6 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
     *value = CSV_UNDEFINED_CHAR;
     return CSV_ERROR;
   }
-
-  *value = (csv_comparison_char_type)c;
-  ZF_LOGD("`csv_file_getnextchar` comlpeted with %c", *value);
   return CSV_GOOD;
 }
 
@@ -454,8 +457,6 @@ void csv_file_appendchar(csvstream_type           streamdata,
 
   /* expand field, if neccessary. hopefully efficiently, needs validation */
   if ((fr->size_f + 1) >= fr->capacity_f) {
-    size_t orig_cap = fr->capacity_f;
-
     ZF_LOGD(
       "`csvfilereader` field size required exceeds capacity, calling `realloc` to expand");
 
@@ -469,16 +470,16 @@ void csv_file_appendchar(csvstream_type           streamdata,
       fr->capacity_f *= 2;
     }
     fr->field = realloc(fr->field, (fr->capacity_f + 1));
-    ZF_LOGI("`csvfilereader` field reallocated to new size of: %d",
-            fr->capacity_f);
+    ZF_LOGI("`csvfilereader` field reallocated to new size of: %lu",
+            (long unsigned int)fr->capacity_f);
 
     memset((fr->field + fr->size_f), 0, ((fr->capacity_f + 1) - fr->size_f));
   }
 
   fr->field[fr->size_f++] = (char)value;
-  ZF_LOGD("Appending character to field: `%c` at position: %d",
+  ZF_LOGD("Appending character to field: `%c` at position: %lu",
           (char)value,
-          fr->size_f);
+          (long unsigned int)fr->size_f);
 }
 
 void csv_file_savefield(csvstream_type streamdata) {
@@ -507,8 +508,8 @@ void csv_file_savefield(csvstream_type streamdata) {
       fr->capacity_r *= 2;
     }
     fr->record = realloc(fr->record, fr->capacity_r);
-    ZF_LOGI("`csvfilereader` record reallocated to new size of: %d",
-            fr->capacity_r);
+    ZF_LOGI("`csvfilereader` record reallocated to new size of: %lu",
+            (long unsigned int)fr->capacity_r);
   }
 
   if ((temp = calloc(fr->size_f + 1, sizeof *fr->field)) == NULL) {
@@ -520,7 +521,8 @@ void csv_file_savefield(csvstream_type streamdata) {
   ZF_LOGD("Beginning to copy field to temp.");
   memcpy(temp, fr->field, fr->size_f);
   ZF_LOGD("Completed copying field to temp, value: `%s`.", temp);
-  fr->record[fr->size_r++] = temp;
+  fr->record[fr->size_r] = temp;
+  fr->size_r += 1;
 
   /* set field back to the beginning of the field */
   fr->size_f = 0;
@@ -538,9 +540,11 @@ CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
   }
 
   csvfilereader fr = (csvfilereader)streamdata;
+  size_t len = 0;
 
   /* allocate string array to pass the pointer list to caller */
   char **record = NULL;
+  *length = fr->size_r;
 
   if ((record = malloc(sizeof *record * fr->size_r)) == NULL) {
     *fields = NULL;
@@ -550,23 +554,19 @@ CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
 
   for (size_t i = 0; i < fr->size_r; ++i) {
     record[i] = fr->record[i];
+    fr->record[i] = NULL;
   }
-
-  /* reset internal field and record index */
-  fr->size_f = 0;
-  fr->size_r = 0;
-
-  /* set outputs, after this the caller owns the memory for the field strings */
-  /* a memory leak will ensue if the caller does not free the memory when */
-  /* completed with it. */
-  *length = fr->size_r;
   *fields = (csvrecord_type)record;
+  *length = len;
 
-  /* this enum gives the caller a clue of the appropriate char type for casting
+   /* reset internal field and record index */
+   fr->size_f = 0;
+   fr->size_r = 0;
+  /*
+   * this enum gives the caller a clue of the appropriate char type for casting
+   * in general, a custom set of callbacks won't vary in the character types
+   * this enum is provided to allow a consistent API between character widths
    */
-
-  /* in general, a custom set of callbacks won't vary in the character types */
-  /* this enum is provided to allow a consistent API between character widths */
   return CSV_CHAR;
 }
 
@@ -632,10 +632,6 @@ csvreader _csvreader_init(csvdialect dialect) {
 
 /*
  * Begin of 'csv/read.h' implementations
- */
-
-/*
- * TODO: core parsing logic -- needs to be before 'csvreader_next_record'
  */
 
 /* bool controls 'should continue' (true) or should break switch (false) */

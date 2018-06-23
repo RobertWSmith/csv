@@ -28,7 +28,7 @@ static void file_output_close(void)
 
 static void file_output_open(const char *const log_path)
 {
-  _log_file = fopen(log_path, "a");
+  _log_file = fopen(log_path, "w");
 
   if (!_log_file)
   {

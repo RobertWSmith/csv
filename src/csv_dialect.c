@@ -54,7 +54,7 @@ csvdialect csvdialect_init(void) {
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_quotechar(dialect, '"'))) {
+  if (csv_failure(csvdialect_set_quotechar(dialect, '\"'))) {
     ZF_LOGD("`csvdialect` default initialization failure");
     csvdialect_close(&dialect);
     return NULL;
