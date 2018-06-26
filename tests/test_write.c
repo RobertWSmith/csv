@@ -1,6 +1,11 @@
 #include "csv.h"
 #include "unity.h"
 
+#ifndef ZF_LOG_LEVEL
+# define ZF_LOG_LEVEL ZF_LOG_VERBOSE
+#endif /* ZF_LOG_LEVEL */
+#include "zf_log.h"
+
 void test_CSVWriterInitDestroy(void) {
   csvdialect dialect = csvdialect_init();
   csvwriter  writer  = csvwriter_init(dialect, NULL);

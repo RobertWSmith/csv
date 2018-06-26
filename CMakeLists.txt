@@ -24,8 +24,9 @@ else()
 endif()
 
 option( BUILD_SHARED_LIBS
-        "Flag which controls if CSV Library is built as shared (ON) or static (OFF)"
+        "Should a shared (ON) or static (OFF) library be built?"
         ${BUILD_SHARED_LIBS})
+
 ##### End Build Variables
 
 include(GNUInstallDirs)
@@ -36,9 +37,9 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   message("No default install directory defied, using default of: `${CMAKE_INSTALL_PREFIX}`")
 endif()
 
-set(csv_PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH "" FORCE)
-set(csv_PUBLIC_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/include CACHE PATH "" FORCE)
-set(csv_PRIVATE_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/src CACHE PATH "" FORCE)
+set(csv_PROJECT_ROOT_DIR    ${CMAKE_CURRENT_SOURCE_DIR}     CACHE PATH "" FORCE)
+set(csv_PUBLIC_INCLUDE_DIR  ${csv_PROJECT_ROOT_DIR}/include CACHE PATH "" FORCE)
+set(csv_PRIVATE_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/src     CACHE PATH "" FORCE)
 
 add_subdirectory(external)
 add_subdirectory(src)

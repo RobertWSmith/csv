@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define ZF_LOG_VERBOSE
+#ifndef ZF_LOG_LEVEL
+# define ZF_LOG_LEVEL ZF_LOG_VERBOSE
+#endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
 #include "csv.h"
@@ -89,11 +91,11 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
-  ZF_LOGI("`csvreturn.io_eof`: %s", rc.io_eof ? "true": "false");
+  ZF_LOGI("`csvreturn.io_eof`: %s", rc.io_eof ? "true" : "false");
   TEST_ASSERT_FALSE(rc.io_eof);
 
   // no error indicated
-  ZF_LOGI("`csvreturn.io_error`: %s", rc.io_error ? "true": "false");
+  ZF_LOGI("`csvreturn.io_error`: %s", rc.io_error ? "true" : "false");
   TEST_ASSERT_FALSE(rc.io_error);
 
   // there are exactly 5 fields in this dataset
@@ -122,11 +124,11 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
-  ZF_LOGI("`csvreturn.io_eof`: %s", rc.io_eof ? "true": "false");
+  ZF_LOGI("`csvreturn.io_eof`: %s", rc.io_eof ? "true" : "false");
   TEST_ASSERT_FALSE(rc.io_eof);
 
   // no error indicated
-  ZF_LOGI("`csvreturn.io_error`: %s", rc.io_error ? "true": "false");
+  ZF_LOGI("`csvreturn.io_error`: %s", rc.io_error ? "true" : "false");
   TEST_ASSERT_FALSE(rc.io_error);
 
   // there are exactly 5 fields in this dataset

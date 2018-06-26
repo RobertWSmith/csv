@@ -5,7 +5,7 @@
 
 // TODO: define CSV log level namespace
 #ifndef ZF_LOG_LEVEL
-# define ZF_LOG_LEVEL ZF_LOG_DEBUG
+# define ZF_LOG_LEVEL ZF_LOG_VERBOSE
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 

@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ZF_LOG_VERBOSE
+#ifndef ZF_LOG_LEVEL
+# define ZF_LOG_LEVEL ZF_LOG_VERBOSE
+#endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
 #include "csv.h"
