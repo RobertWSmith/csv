@@ -13,7 +13,7 @@ set PROJECT_ROOT=%CD%
 for %%I in (.) do set PROJECT_DIRNAME=%%~nxI
 
 cd ..
-set BUILD_DIR=%CD%\%PROJECT_DIRNAME%-build
+set BUILD_DIR=%CD%\%PROJECT_DIRNAME%-build-mingw
 mkdir "%BUILD_DIR% > nul 2>&1
 
 cd %BUILD_DIR%

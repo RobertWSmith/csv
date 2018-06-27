@@ -234,8 +234,9 @@ csvreturn csvreader_next_record(csvreader       reader,
 
   ZF_LOGD("Beginning `getnextchar` loop.");
 
-  /* TODO: look into why this loop is breaking on the first character... */
-  do {
+  /* burn through any chars that exist at the beginning of the record which
+     don't add to a field */
+  while (reader->parser_state == START_RECORD) {
     signal = (*reader->getnextchar)(reader->streamdata, &value);
     ZF_LOGD("signal returned: `%d`, character returned: `%c`.",
             signal,
@@ -256,7 +257,34 @@ csvreturn csvreader_next_record(csvreader       reader,
       ZF_LOGD("Signal indicates EOF or Error, ending loop.");
       break;
     }
-  } while (reader->parser_state != START_RECORD);
+  }
+
+  /* as long as the input is in a good state, extract chars until we hit the
+     next start of record */
+  if (signal == CSV_GOOD) {
+    do {
+      signal = (*reader->getnextchar)(reader->streamdata, &value);
+      ZF_LOGD("signal returned: `%d`, character returned: `%c`.",
+              signal,
+              (char)value);
+
+      if (value == '\0') {
+        ZF_LOGI("line contains NULL byte");
+        rc          = csvreturn_init(false);
+        rc.io_error = 1;
+        return rc;
+      }
+
+      if (signal == CSV_GOOD) {
+        ZF_LOGD("Signal indicates good value returned, beginning to parse.");
+        parse_value(reader, value);
+      }
+      else {
+        ZF_LOGD("Signal indicates EOF or Error, ending loop.");
+        break;
+      }
+    } while (reader->parser_state != START_RECORD);
+  }
 
   size_t len = 0;
   *char_type     = (*reader->saverecord)(reader->streamdata, record, &len);
@@ -431,7 +459,7 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
 
   if ((c = fgetc(fr->file)) != EOF) {
     *value = (csv_comparison_char_type)c;
-    ZF_LOGD("`csv_file_getnextchar` comlpeted with `%c`.", (char)(*value));
+    ZF_LOGD("`csv_file_getnextchar` completed with `%c`.", (char)(*value));
     return CSV_GOOD;
   }
   ZF_LOGD("`csv_file_getnextchar` after calling `fgetc(fr->file)`.");
@@ -578,6 +606,7 @@ CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
   /* reset internal field and record index */
   fr->size_f = 0;
   fr->size_r = 0;
+  memset(fr->field, 0, fr->capacity_f);
 
   /*
    * this enum gives the caller a clue of the appropriate char type for casting
@@ -918,7 +947,9 @@ inline void parse_value(csvreader                reader,
 
   case EAT_CRNL:
 
-    if (value == '\0') reader->parser_state = START_RECORD;
+    if (value != '\0') {
+      reader->parser_state = START_RECORD;
+    }
     break;
 
   default:

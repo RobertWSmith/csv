@@ -3,11 +3,9 @@ setlocal
 
 :: default target to 'all', but allow the first argument to be the target
 if not [%1] == [] (
-  echo "Setting target to '%1'"
   set target=%1
   set build_options=
 ) else (
-  echo "Setting target to default 'all'"
   set target=all
   set build_options=-j4
 )
@@ -21,7 +19,7 @@ set PROJECT_ROOT=%CD%
 for %%I in (.) do set PROJECT_DIRNAME=%%~nxI
 
 cd ..
-set BUILD_DIR=%CD%\%PROJECT_DIRNAME%-build
+set BUILD_DIR=%CD%\%PROJECT_DIRNAME%-build-mingw
 
 if not "%target" == "all" (
   set clean_first=

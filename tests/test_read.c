@@ -148,26 +148,28 @@ void test_CSVReaderIrisDataset(void) {
   }
   free(record);
 
+  int cnt = 0;
+
   while (true) {
+    ZF_LOGI("Row #%d", ++cnt);
     rc = csvreader_next_record(reader,
                                &char_type,
                                (csvrecord_type *)&record,
                                &record_length);
 
-    // successful return
-    TEST_ASSERT_TRUE(csv_success(rc));
+    if (csv_success(rc)) {
+      // there are exactly 5 fields in this dataset
+      TEST_ASSERT_EQUAL_UINT(5U, record_length);
 
-    // no eof indicated
-    TEST_ASSERT_FALSE(rc.io_eof);
-
-    // there are exactly 5 fields in this dataset
-    TEST_ASSERT_EQUAL_UINT(5U, record_length);
-
-    // excellent, now must free the memory
-    for (i = 0; i < record_length; ++i) {
-      free(record[i]);
+      // excellent, now must free the memory
+      for (i = 0; i < record_length; ++i) {
+        free(record[i]);
+      }
+      free(record);
     }
-    free(record);
+    else {
+      break;
+    }
   }
 
   ZF_LOGI("`csvreader_close` before");
