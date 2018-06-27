@@ -4,6 +4,24 @@
  * https://github.com/python/cpython/blob/master/Modules/_csv.c
  */
 
+/*
+ * @internal
+ *
+ * @file csv_read.c
+ * @author Robert W. Smith
+ * @date 2018-06-27
+ * @brief Implementation of CSV Input parser
+ *
+ * Private documentation, API subject to change. Parts of this file are useful
+ * as example implementations of the callback API.
+ *
+ * @see csv/definitions.h
+ * @see csv/dialect.h
+ * @see csv/stream.h
+ * @see csv/read.h
+ * @see csv/version.h
+ */
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,50 +40,295 @@
 #include "csv/read.h"
 #include "dialect_private.h"
 
+/*
+ * @internal
+ * @brief Flags to store the parser state
+ *
+ * These flags help determine how the next character in the stream will be
+ * evaluated.
+ */
 typedef enum CSV_READER_PARSER_STATE {
-  START_RECORD,
-  START_FIELD,
-  ESCAPED_CHAR,
-  IN_FIELD,
-  IN_QUOTED_FIELD,
-  ESCAPE_IN_QUOTED_FIELD,
-  QUOTE_IN_QUOTED_FIELD,
-  EAT_CRNL,
-  AFTER_ESCAPED_CRNL,
+  START_RECORD,           /*< Indicates that the parser is at the beginning of a
+                             new record, current field and record buffer
+                             positions should both be zero. */
+  START_FIELD,            /*< Indicates the parser is at the beginning of a new
+                             field, the field buffer position should be at zero
+                           */
+  ESCAPED_CHAR,           /*< Indicates the prior character indicates the next
+                             character should be treated as though it has been
+                             escaped */
+  IN_FIELD,               /*< Indicates the parser is inside of a field, and is
+                             watching for a delimiter to find the end of the
+                             field */
+  IN_QUOTED_FIELD,        /*< Indicates the parser is in a quoted field, and is
+                             watching for another quote character before the
+                             delimiter */
+  ESCAPE_IN_QUOTED_FIELD, /*< Indicates that the field is quoted and the prior
+                             character was an escape */
+  QUOTE_IN_QUOTED_FIELD,  /*< Indicates a quote character was encountered in a
+                             quoted field, determines whether to consider this
+                             as a field character or a special character for
+                             parsing the CSV */
+  EAT_CRNL,               /*< Indicates the parser should disregard any Carriage
+                             Returns or New Line characters, generally if
+                             they're encountered at the end of a line */
+  AFTER_ESCAPED_CRNL,     /*< Indicates that the parser is immediately after a
+                             Carriage Return or New Line which should be
+                             considered part of the text of a field */
 } CSV_READER_PARSER_STATE;
 
+/*
+ * convert CSV Reader Parser State enum value to string
+ *
+ * mostly intended to use for logging
+ */
+inline const char * const csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
+  switch (state) {
+  case START_RECORD: return "START_RECORD";
+
+  case START_FIELD: return "START_FIELD";
+
+  case ESCAPED_CHAR: return "ESCAPED_CHAR";
+
+  case IN_FIELD: return "IN_FIELD";
+
+  case IN_QUOTED_FIELD: return "IN_QUOTED_FIELD";
+
+  case ESCAPE_IN_QUOTED_FIELD: return "ESCAPE_IN_QUOTED_FIELD";
+
+  case QUOTE_IN_QUOTED_FIELD: return "QUOTE_IN_QUOTED_FIELD";
+
+  case EAT_CRNL: return "EAT_CRNL";
+
+  case AFTER_ESCAPED_CRNL: return "AFTER_ESCAPED_CRNL";
+
+  default: return "UNDEFINED";
+  }
+}
+
+/*
+ * @brief Implementation of the CSV Reader.
+ *
+ * With respect to the @p streamdata field, this is supplied as an opaque
+ * pointer to the constructor, and is passed as an opaque pointer to the
+ * functions defined by @p getnextchar, @p appendchar, @p savefield,
+ * @p saverecord, and the optional @p closer callbacks. This structure should be
+ * implemented in a way that it contains any information it needs to interact
+ * with the input stream,  and a buffer for the current field, another buffer
+ * for the current record, and likely a way to track the current length and
+ * capacity of each of the field and record buffers.
+ *
+ * @see csvreader
+ * @see csvdialect
+ * @see csvreader_init
+ * @see csvreader_advanced_init
+ * @see csvdialect_init
+ * @see csv/read.h
+ * @see csv/dialect.h
+ */
 struct csv_reader {
-  csvdialect              dialect;
-  csvstream_type          streamdata;
-  csvstream_getnextchar   getnextchar;
-  csvstream_appendfield   appendchar;
-  csvstream_savefield     savefield;
-  csvstream_saverecord    saverecord;
-  csvstream_close         closer;
-  CSV_READER_PARSER_STATE parser_state;
+  csvdialect dialect;                   /*< CSV Dialect, which is the
+                                           configuration type for the CSV parser
+                                         */
+  csvstream_type streamdata;            /*< Arbitrary pointer to a user-defined
+                                           struct. See description above */
+  csvstream_getnextchar getnextchar;    /*< Callback which supplies the next
+                                           character in the stream */
+  csvstream_appendfield appendchar;     /*< Callback which appends the supplied
+                                           character to the end of the current
+                                           field buffer */
+  csvstream_savefield savefield;        /*< Callback which finalizes the current
+                                           field and appends the string to the
+                                           end of the record array */
+  csvstream_saverecord saverecord;      /*< Callback which finalizes the record
+                                           and prepares it to return to the
+                                           caller */
+  csvstream_close closer;               /*< Optional callback which releases the
+                                           resources held by @p streamdata */
+  CSV_READER_PARSER_STATE parser_state; /*< Holds the parser state, which
+                                           controls the parser algorithm */
 };
 
 /*
- * private implementation forward declarations.
+ * @brief CSV File Reader
+ *
+ * Private struct pointer which is used as a @c streamdata input, maintains
+ * data from @c stdio based streams.
  */
 typedef struct csv_file_reader *csvfilereader;
 
-csvfilereader     csvfilereader_init(void);
-csvfilereader     csv_filepath_open(char const *filepath);
-csvfilereader     csv_file_open(FILE *fileobj);
+/*
+ * @brief Initializes the private struct used to read from @c stdio streams
+ *
+ * This function initializes the @c csvfilereader state to NULL on the stream
+ * and filepath values, and a default allocated field buffer and record buffer.
+ *
+ * @return Default initialized @c csvfilereader
+ */
+csvfilereader csvfilereader_init(void);
+
+/*
+ * @brief Initializes the private struct used to read from a filepath
+ *
+ * This method uses @p filepath as a parameter when calling @c fopen. This
+ * method also sets a @c closer callback which ensures that when @c
+ * csvreader_close is called the stream and resources are appropriately closed.
+ * This initializer works with standard C @c char types.
+ *
+ * @param[in] filepath  path to the input file
+ *
+ * @return              Fully initialized @c csvfilereader, if NULL is returned
+ *                      then an IO error was encountered.
+ *
+ * @see csvfilereader_init
+ */
+csvfilereader csv_filepath_open(char const *filepath);
+
+/*
+ * @brief Initializes the private struct used to read from a @c FILE*
+ *
+ * This method uses @p fileobj as a parameter and does not call @c fopen. This
+ * method also sets a @c closer callback which ensures that when @c
+ * csvreader_close is called the stream is not closed, but the buffers created
+ * are closed. This initializer works with standard C @c char types.
+ *
+ * @param[in] fileobj   path to the input file
+ *
+ * @return              Fully initialized @c csvfilereader, if NULL is returned
+ *                      then an IO error was encountered.
+ *
+ * @see csvfilereader_init
+ */
+csvfilereader csv_file_open(FILE *fileobj);
+
+
+/*
+ * @brief Get next character in the input stream
+ *
+ * Callback conforming to the @c csvstream_getnextchar definition
+ *
+ * This callback was designed for the @c csvfilereader as the @p streamdata
+ * value. This reads a single @c char from the IO buffer and returns it as the
+ * value. The return value is defined by the API to allow validation of the
+ * proper downcast size of @p value.
+ *
+ * @param[in,out] streamdata  opaque pointer to @c csvfilereader object
+ * @param[out] value          next character in the stream, upcast to
+ *                            @c csv_comparison_char_type if neccessary
+ *
+ * @return                    enum constant which declares the proper downcast
+ *                            size of @p value
+ *
+ * @see csv/stream.h
+ */
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
                                        csv_comparison_char_type *value);
-void              csv_file_appendchar(csvstream_type           streamdata,
-                                      csv_comparison_char_type value);
-void              csv_file_savefield(csvstream_type streamdata);
-CSV_CHAR_TYPE     csv_file_saverecord(csvstream_type  streamdata,
-                                      csvrecord_type *fields,
-                                      size_t         *length);
-void              csv_read_filepath_close(csvstream_type streamdata);
-void              csv_read_file_close(csvstream_type streamdata);
-csvreader         _csvreader_init(csvdialect dialect);
-inline void       parse_value(csvreader                reader,
-                              csv_comparison_char_type value);
+
+/*
+ * @brief Append a character to the end of the current field buffer
+ *
+ * Callback conforming to the @c csvstream_appendfield definition
+ *
+ * Called when a character which is not used for parsing is encountered, this
+ * character is appended to the end of the current field buffer.
+ *
+ * @param[in,out] streamdata  opaque pointer to @c csvfilereader object
+ * @param[in]     value       the character to append
+ * ... might need to add input for CSV_STREAM_SIGNAL
+ *
+ * @see csv/stream.h
+ */
+void csv_file_appendchar(csvstream_type           streamdata,
+                         csv_comparison_char_type value);
+
+/*
+ * @brief Save field as next value in current record buffer
+ *
+ * Callback conforming to the @c csvstream_savefield definition
+ *
+ * When this function is called, the internal field buffer data is used to
+ * create a record buffer field of appropriate size. The record buffer's size
+ * tracker increments by one, and the field buffer's position is set back to
+ * zero.
+ *
+ * @param[in,out] streamdata  opaque pointer to @c csvfilereader object
+ *
+ * @see csv/stream.h
+ */
+void          csv_file_savefield(csvstream_type streamdata);
+
+/*
+ * @brief Save record in preparation of returning it to the caller
+ *
+ * Callback conforming to the @c csvstream_saverecord definition
+ *
+ * This function prepares the current record buffer to return as a opaque
+ * pointer to a void** with length elements. The return value informs the
+ * base type of the @p fields
+ *
+ * @param[in,out] streamdata  opaque pointer to @c csvfilereader object
+ * @param[out]    fields      reference to a appropriate pointer, the type can
+ *                            either be documented by the API (@c char in this
+ *                            case) or the caller can use the return value to
+ *                            cast to the correct type.
+ * @param[out]    length      the number of fields stored in @p fields
+ *
+ * @return                    enum constant which declares the proper downcast
+ *                            size of @p value
+ *
+ * @see csv/stream.h
+ */
+CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
+                                  csvrecord_type *fields,
+                                  size_t         *length);
+
+/*
+ * @brief Release resources for CSV readers initialized with a filepath
+ *
+ * Closes the @c FILE* opened with the filepath and releases the allocated
+ * buffers.
+ *
+ * @param[in,out] streamdata  opaque pointer to @c csvfilereader object
+ *
+ * @see csv/stream.h
+ */
+void        csv_read_filepath_close(csvstream_type streamdata);
+
+/*
+ * @brief Release resources for CSV readers initialized with a @c FILE*
+ *
+ * Frees the allocated buffers, does not release the file stream
+ *
+ * @param[in,out] streamdata  opaque pointer to @c csvfilereader object
+ *
+ * @see csv/stream.h
+ */
+void        csv_read_file_close(csvstream_type streamdata);
+
+/*
+ * @brief Default initializer for the CSV Reader
+ *
+ * Initializes all fields to @c NULL, except the @p dialect. If @p dialect is
+ * @c NULL then @c csvdialect_init is called and the default dialect is used in
+ * its place.
+ *
+ * @param[in] dialect CSV Dialect configuration type
+ *
+ * @see csvreader_init
+ * @see csvreader_advanced_init
+ */
+csvreader   _csvreader_init(csvdialect dialect);
+
+/*
+ * @brief Determine what should be done with the next character in the stream
+ *
+ * This function takes into account the current state of the parser and then
+ * uses the supplied character to determine if it should be added to the current
+ * field, if it indicates a field boundary has been determined, a record
+ * boundary or the end of the stream.
+ */
+inline void parse_value(csvreader                reader,
+                        csv_comparison_char_type value);
 
 /*
  * end of private forward declarations
@@ -76,7 +339,7 @@ inline void       parse_value(csvreader                reader,
  */
 csvreader csvreader_init(csvdialect  dialect,
                          const char *filepath) {
-  ZF_LOGI("`csvreader_init` called dialect: `%p`, filepath: `%s`.",
+  ZF_LOGI("arguments dialect: `%p`, filepath: `%s`.",
           dialect,
           filepath);
   csvreader reader = NULL;
@@ -112,7 +375,7 @@ csvreader csvreader_init(csvdialect  dialect,
 
 csvreader csvreader_file_init(csvdialect dialect,
                               FILE      *fileobj) {
-  ZF_LOGI("`csvreader_file_init` called dialect: `%p`, fileobj: `%p`.",
+  ZF_LOGI("arguments dialect: `%p`, fileobj: `%p`.",
           dialect,
           fileobj);
   csvreader reader = NULL;
@@ -152,14 +415,21 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
                                   csvstream_savefield   savefield,
                                   csvstream_saverecord  saverecord,
                                   csvstream_type        streamdata) {
-  ZF_LOGI("`csvreader_advanced_init` called.");
+  ZF_LOGI(
+    "arguments dialect: `%p` getnextchar: `%p` appendchar: `%p` savefield: `%p` saverecord: `%p` streamdata: `%p`.",
+    dialect,
+    getnextchar,
+    appendchar,
+    savefield,
+    saverecord,
+    streamdata);
 
   /* validation step */
   /* other than dialect, all arguments must be non-null */
   if ((getnextchar == NULL) || (appendchar == NULL) || (savefield == NULL) ||
       (saverecord == NULL) || (streamdata == NULL)) {
     ZF_LOGI(
-      "`csvreader_advance_init` failed due to unexpected NULL.\ngetnextchar: `%s`\nappendchar:  `%s`\nsavefield:   `%s`\nsaverecord:  `%s`\nstreamdata:  `%s`\n",
+      "failed due to unexpected NULL. getnextchar: `%s` appendchar: `%s` savefield: `%s` saverecord: `%s` streamdata: `%s`",
       (getnextchar == NULL) ? "NULL" : "NOT NULL",
       (appendchar == NULL) ? "NULL" : "NOT NULL",
       (savefield == NULL) ? "NULL" : "NOT NULL",
@@ -183,43 +453,32 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
 csvreader csvreader_set_closer(csvreader       reader,
                                csvstream_close closer) {
   if (reader == NULL) {
-    ZF_LOGI("`csvreader_set_closer` called with NULL `reader`.");
+    ZF_LOGI("`called with NULL `reader`.");
     return NULL;
   }
 
   reader->closer = closer;
-  ZF_LOGD("`csvreader_set_closer` succeeded.");
   return reader;
 }
 
 void csvreader_close(csvreader *reader) {
-  /* optimization opportunity after test success */
-  ZF_LOGI("`csvreader_close` called.");
-  csvreader r = *reader;
+  ZF_LOGI("called reader: `%p`", *reader);
 
-
-  if (r == NULL) {
+  if ((*reader) == NULL) {
     ZF_LOGI("`reader` referenced a NULL pointer, exiting function early.");
     return;
   }
 
-  /* optimization opportunity after test success */
-  csvdialect d;
-  d = r->dialect;
-  csvdialect_close(&d);
+  csvdialect_close(&((*reader)->dialect));
 
-  /* optimization opportunity after test success */
-  csvstream_close closer;
-  closer = r->closer;
-
-  if (closer != NULL) {
+  if (((*reader)->closer) != NULL) {
     ZF_LOGI(
       "Calling the `csvstream_close` function supplied to close the stream data.");
-    (*closer)(r->streamdata);
+    (*((*reader)->closer))((*reader)->streamdata);
   }
 
   ZF_LOGD("Freeing the `csvreader`.");
-  free(r);
+  free((*reader));
   *reader = NULL;
 }
 
@@ -227,7 +486,7 @@ csvreturn csvreader_next_record(csvreader       reader,
                                 CSV_CHAR_TYPE  *char_type,
                                 csvrecord_type *record,
                                 size_t         *record_length) {
-  ZF_LOGI("`csvreader_next_record` called.");
+  ZF_LOGI("called reader: `%p`", reader);
   csv_comparison_char_type value = 0;
   CSV_STREAM_SIGNAL signal       = CSV_GOOD;
   csvreturn rc;

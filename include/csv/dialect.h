@@ -55,6 +55,102 @@ typedef enum CSV_LINETERMINATOR_TYPE {
 } CSV_LINETERMINATOR_TYPE;
 
 /**
+ * @brief Convert the Lineterminator value to a useable string
+ *
+ * @param  lineterminator current lineterminator configuration
+ * @param  char_type      current char width configuration
+ *
+ * @return                opaque pointer to a string, castable to the type
+ *                        requested by @p char_type
+ */
+inline void* csv_lineterminator_type(
+  CSV_LINETERMINATOR_TYPE lineterminator,
+  CSV_CHAR_TYPE           char_type) {
+  switch (lineterminator) {
+  case LINETERMINATOR_CRNL:
+
+    switch (char_type) {
+    case CSV_WCHAR:
+      return _CSV_LINETERMINATOR_CRNL_WCHAR;
+
+    case CSV_CHARU8:
+      return _CSV_LINETERMINATOR_CRNL_CHARU8;
+
+    case CSV_CHAR16:
+      return _CSV_LINETERMINATOR_CRNL_CHAR16;
+
+    case CSV_CHAR32:
+      return _CSV_LINETERMINATOR_CRNL_CHAR32;
+
+    case CSV_CHAR:
+    default:
+      return _CSV_LINETERMINATOR_CRNL_CHAR;
+    }
+
+  case LINETERMINATOR_CR:
+
+    switch (char_type) {
+    case CSV_WCHAR:
+      return _CSV_LINETERMINATOR_CR_WCHAR;
+
+    case CSV_CHARU8:
+      return _CSV_LINETERMINATOR_CR_CHARU8;
+
+    case CSV_CHAR16:
+      return _CSV_LINETERMINATOR_CR_CHAR16;
+
+    case CSV_CHAR32:
+      return _CSV_LINETERMINATOR_CR_CHAR32;
+
+    case CSV_CHAR:
+    default:
+      return _CSV_LINETERMINATOR_CR_CHAR;
+    }
+
+  case LINETERMINATOR_NL:
+
+    switch (char_type) {
+    case CSV_WCHAR:
+      return _CSV_LINETERMINATOR_NL_WCHAR;
+
+    case CSV_CHARU8:
+      return _CSV_LINETERMINATOR_NL_CHARU8;
+
+    case CSV_CHAR16:
+      return _CSV_LINETERMINATOR_NL_CHAR16;
+
+    case CSV_CHAR32:
+      return _CSV_LINETERMINATOR_NL_CHAR32;
+
+    case CSV_CHAR:
+    default:
+      return _CSV_LINETERMINATOR_NL_CHAR;
+    }
+
+  case LINETERMINATOR_SYSTEM_DEFAULT:
+  default:
+
+    switch (char_type) {
+    case CSV_WCHAR:
+      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR;
+
+    case CSV_CHARU8:
+      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8;
+
+    case CSV_CHAR16:
+      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16;
+
+    case CSV_CHAR32:
+      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32;
+
+    case CSV_CHAR:
+    default:
+      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR;
+    }
+  }
+}
+
+/**
  * @brief CSV Dialect type which configures CSV reader and writer objects
  */
 typedef struct csv_dialect *csvdialect;
