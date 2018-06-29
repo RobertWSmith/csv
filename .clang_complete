@@ -1,0 +1,6 @@
+-std=c11
+-DDEBUG
+-Iinclude
+-Isrc
+-Iexternal/zf_log/zf_log
+-Iexternal/Unity/src

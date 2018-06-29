@@ -49,10 +49,10 @@ csvwriter csvwriter_init(csvdialect  dialect,
 /**
  * @brief CSV Writer initializer from File object
  *
- * @param  dialect CSV Dialect type
- * @param  fileobj File object, if @c NULL a @c NULL writer will be returned
+ * @param[in] dialect CSV Dialect type
+ * @param[in] fileobj File object, if @c NULL a @c NULL writer will be returned
  *
- * @return         Filly initialized CSV Writer, or @c NULL on error
+ * @return            Initialized CSV Writer, or @c NULL on error
  *
  * @see csvdialect_init
  * @see csvwriter_init
@@ -63,27 +63,38 @@ csvwriter csvwriter_file_init(csvdialect dialect,
                               FILE      *fileobj);
 
 /**
- * [csvwriter_advanced_init description]
+ * @brief CSV Writer advanced initializer
  *
- * @param  dialect      [description]
- * @param  getnextfield [description]
- * @param  writestring  [description]
- * @param  streamdata   [description]
+ * @param[in] dialect      CSV Dialect type
+ * @param[in] setrecord    callback function which sets a new record as active
+ * @param[in] getnextfield callback function which sets the next field in a CSV
+ *                         record as active
+ * @param[in] getnextchar  callback function which gets the next character from
+ *                         the active CSV field
+ * @param[in] writechar    callback function which writes the next character to
+ *                         a stream, may be called more than once per character
+ *                         in the field depending on the @p dialect
+ *                         configuration
+ * @param[in] streamdata   opaque pointer to a structure which contains the
+ *                         data needed for the callback functions
  *
- * @return              [description]
+ * @return                 Initialized CSV Writer
  */
 csvwriter csvwriter_advanced_init(csvdialect             dialect,
-                                  csvstream_getnextfield getnextfield,
-                                  csvstream_writestring  writestring,
+                                  csvstream_setrecord    setrecord,
+                                  csvstream_setnextfield getnextfield,
+                                  csvstream_getnextchar  getnextchar,
+                                  csvstream_writechar    writechar,
                                   csvstream_type         streamdata);
 
 /**
- * [csvwriter_set_closer description]
+ * @brief CSV Writer set closing callback
  *
- * @param  writer [description]
- * @param  closer [description]
+ * @param[in]  writer Initialized CSV Writer type
+ * @param[in]  closer callback function which accepts the @c streamdata type as
+ *                    an argument and safely frees its resources
  *
- * @return        [description]
+ * @return            Initialized CSV writer
  */
 csvwriter csvwriter_set_closer(csvwriter       writer,
                                csvstream_close closer);
@@ -111,15 +122,17 @@ void      csvwriter_close(csvwriter *writer);
  * @brief Set next CSV Record to CSV Writer's file
  *
  * @param[in]   writer        CSV Writer type
+ * @param[in]   char_type     Type of character as each element of the record
+ *                            array
  * @param[in]   record        CSV Record type
  * @param[in]   record_length Number of fields stored in @p record
  *
- * @return              CSV Return type to determine if the operation was
- *                      successful
+ * @return                    CSV Return type to determine if the operation was
+ *                            successful
  */
 csvreturn csvwriter_next_record(csvwriter            writer,
+                                CSV_CHAR_TYPE        char_type,
                                 const csvrecord_type record,
                                 size_t               record_length);
-
 
 #endif /* CSV_WRITE_H_ */

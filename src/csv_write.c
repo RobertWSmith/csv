@@ -18,227 +18,221 @@
 
 #include "dialect_private.h"
 
-/*
- * private declarations
- */
+typedef struct csv_file_writer *csvfilewriter;
 
-typedef struct csv_file_writer {
-  const char *filepath;
-  FILE       *file;
-  size_t      field_position;
-} *csvfilewriter;
-
-csvwriter     _csvwriter_init(csvdialect dialect);
-csvfilewriter _csvfilewriter_init(void);
-CSV_CHAR_TYPE csv_filepath_getnextfield(csvstream_type streamdata,
-                                        csvrecord_type record,
-                                        size_t         record_length,
-                                        csvfield_type *field,
-                                        size_t        *field_length);
-void csv_filepath_writestring(csvstream_type      streamdata,
-                              CSV_CHAR_TYPE       char_type,
-                              const csvfield_type field,
-                              size_t              field_length);
-void csv_write_filepath_closer(csvstream_type streamdata);
-
-/*
- * end private delarations
- */
-
-/*
- * API methods
- */
 struct csv_writer {
   csvdialect             dialect;
   csvstream_type         streamdata;
+  csvstream_setrecord    setrecord;
+  csvstream_setnextfield setnextfield;
+  csvstream_getnextchar  getnextchar;
+  csvstream_writechar    writechar;
   csvstream_close        closer;
-  csvstream_getnextfield getnextfield;
-  csvstream_writestring  writestring;
 };
 
 csvwriter csvwriter_init(csvdialect  dialect,
                          const char *filepath) {
-  csvwriter writer = NULL;
-  csvfilewriter fw = NULL;
-  FILE *f          = NULL;
-
-  if ((f = fopen(filepath, "wb")) == NULL) {
-    // short circuit if the file couldn't be opened
-    return NULL;
-  }
-
-  if ((fw = _csvfilewriter_init()) == NULL) {
-    // finalize if memory cannot be allocated
-    fclose(f);
-    return NULL;
-  }
-
-  fw->filepath = filepath;
-  fw->file     = f;
-
-  writer =
-    csvwriter_advanced_init(dialect,
-                            &csv_filepath_getnextfield,
-                            &csv_filepath_writestring,
-                            (csvstream_type)fw);
-
-  writer = csvwriter_set_closer(writer, &csv_write_filepath_closer);
-
-  if (writer == NULL) {
-    fclose(f);
-    free(fw);
-    return NULL;
-  }
-  return writer;
+  return NULL;
 }
 
-void csvwriter_close(csvwriter *writer) {
-  csvwriter w = *writer;
-
-  if (w == NULL) return;
-
-  if (w->dialect != NULL) csvdialect_close(&(w->dialect));
-
-  free(w);
-  *writer = NULL;
+csvwriter csvwriter_file_init(csvdialect dialect,
+                              FILE      *fileobj) {
+  return NULL;
 }
 
 csvwriter csvwriter_advanced_init(csvdialect             dialect,
-                                  csvstream_getnextfield getnextfield,
-                                  csvstream_writestring  writestring,
+                                  csvstream_setrecord    setrecord,
+                                  csvstream_setnextfield setnextfield,
+                                  csvstream_getnextchar  getnextchar,
+                                  csvstream_writechar    writechar,
                                   csvstream_type         streamdata) {
-  csvwriter writer = NULL;
+  csvwriter writer;
 
-  if ((writer = _csvwriter_init(dialect)) == NULL) {
+  dialect = (dialect == NULL) ? csvdialect_init() : csvdialect_copy(dialect);
+
+  if (dialect == NULL) {
     return NULL;
   }
 
-  writer->getnextfield = getnextfield;
-  writer->writestring  = writestring;
+  if ((writer = malloc(sizeof *writer)) == NULL) {
+    return NULL;
+  }
+
+  writer->dialect      = dialect;
   writer->streamdata   = streamdata;
+  writer->setrecord    = setrecord;
+  writer->setnextfield = setnextfield;
+  writer->getnextchar  = getnextchar;
+  writer->writechar    = writechar;
+  writer->closer       = NULL;
 
   return writer;
 }
 
 csvwriter csvwriter_set_closer(csvwriter       writer,
                                csvstream_close closer) {
-  if (writer == NULL) return NULL;
+  if (writer == NULL) {
+    return NULL;
+  }
 
   writer->closer = closer;
   return writer;
 }
 
+void csvwriter_close(csvwriter *writer) {
+  if ((*writer) == NULL) {
+    return;
+  }
+
+  if ((*writer)->closer != NULL) {
+    (*(*writer)->closer)((*writer)->streamdata);
+  }
+
+  if ((*writer)->dialect != NULL) {
+    csvdialect_close(&((*writer)->dialect));
+  }
+
+  free(*writer);
+  *writer = NULL;
+}
+
+/*
+ * completed, pending validation
+ */
 csvreturn csvwriter_next_record(csvwriter            writer,
+                                CSV_CHAR_TYPE        char_type,
                                 const csvrecord_type record,
-                                size_t               record_length) {
-  return csvreturn_init(false);
-}
+                                size_t               length) {
+  csvreturn rc;
+  size_t    i, j, field_len;
+  csv_comparison_char_type value;
+  bool needs_quoting;
+  QUOTE_STYLE quote_style;
+  CSV_STREAM_SIGNAL stream_signal;
 
-/*
- * end API implementation
- */
-
-/*
- * begin private implementation
- */
-csvwriter _csvwriter_init(csvdialect dialect) {
-  csvwriter writer = NULL;
-
-  if ((writer = malloc(sizeof *writer)) == NULL) {
-    // couldn't initialize
-    return NULL;
+  if (writer == NULL) {
+    rc = csvreturn_init(false);
   }
+  else {
+    rc = csvreturn_init(true);
+    (*writer->setrecord)(writer->streamdata, char_type, record, length);
+    quote_style = csvdialect_get_quotestyle(writer->dialect);
 
-  writer->dialect = dialect;
+    for (i = 0; i < length; ++i) {
+      field_len = (*writer->setnextfield)(writer->streamdata);
 
-  if (dialect == NULL) {
-    writer->dialect = csvdialect_init();
-  }
-  writer->streamdata   = NULL;
-  writer->closer       = NULL;
-  writer->getnextfield = NULL;
-  writer->writestring  = NULL;
+      switch (quote_style) {
+      case QUOTE_STYLE_ALL:
+        needs_quoting = true;
+        break;
 
-  return writer;
-}
+      case QUOTE_STYLE_NONE:
+        needs_quoting = false;
 
-csvfilewriter _csvfilewriter_init(void) {
-  csvfilewriter fw = NULL;
+        /* never need to check to see if quoting is required on these two */
+        break;
 
-  if ((fw = malloc(sizeof *fw)) == NULL) {
-    return NULL;
-  }
-  fw->filepath       = NULL;
-  fw->file           = NULL;
-  fw->field_position = 0;
-  return fw;
-}
+      case QUOTE_STYLE_MINIMAL:
+      default:
 
-CSV_CHAR_TYPE csv_filepath_getnextfield(csvstream_type streamdata,
-                                        csvrecord_type record,
-                                        size_t         record_length,
-                                        csvfield_type *field,
-                                        size_t        *field_length) {
-  if ((streamdata == NULL) || (record == NULL)) {
-    *field        = NULL;
-    *field_length = 0;
-    return CSV_CHAR;
-  }
+        /* need to check the field for the following to determine quoting:
+         * - delimiter
+         * - any newline characters
+         * - quoting character
+         * - escape character
+         */
+        for (j = 0; j < field_len; ++j) {
+          stream_signal = (*writer->getnextchar)(writer->streamdata, &value);
 
-  csvfilewriter fw = (csvfilewriter)streamdata;
+          if (
+            (value == csvdialect_get_delimiter(writer->dialect)) ||
+            (value == csvdialect_get_quotechar(writer->dialect)) ||
+            (value == csvdialect_get_escapechar(writer->dialect)) ||
+            (value == '\n') ||
+            (value == '\r')
+            ) {
+            needs_quoting = true;
+            break;
+          }
+        }
+        break;
+      }
 
-  if ((fw->field_position + 1) >= record_length) {
-    // TODO: need to figure out what I could use as a end of record indicator
-    fw->field_position = 0;
-    *field             = NULL;
-    *field_length      = 0;
-    return CSV_CHAR;
-  }
+      if (i > 0) {
+        /*
+         * write the delimiter after the first iteration. Ensures trailing
+         * delimiter is not written to the stream
+         */
+        (*writer->writechar)(writer->streamdata, char_type,
+                             csvdialect_get_delimiter(writer->dialect));
+      }
 
-  *field        = record[fw->field_position++];
-  *field_length = strlen(*field);
-  return CSV_CHAR;
-}
 
-void csv_filepath_writestring(csvstream_type      streamdata,
-                              CSV_CHAR_TYPE       char_type,
-                              const csvfield_type field,
-                              size_t              field_length) {
-  if ((streamdata == NULL) || (field == NULL)) return;
+      /* initial quote -- outside the loop */
+      if (needs_quoting) {
+        (*writer->writechar)(writer->streamdata, char_type,
+                             csvdialect_get_quotechar(writer->dialect));
+      }
 
-  int char_, rc;
+      for (j = 0; j < field_len; ++j) {
+        stream_signal = (*writer->getnextchar)(writer->streamdata, &value);
 
-  csvfilewriter fw = (csvfilewriter)streamdata;
-  char *value      = (char *)field;
+        /* apply escape character, if neccessary */
+        if (!needs_quoting) {
+          if (
+            (value == csvdialect_get_delimiter(writer->dialect)) ||
+            (value == csvdialect_get_quotechar(writer->dialect)) ||
+            (value == csvdialect_get_escapechar(writer->dialect)) ||
+            (value == '\n') ||
+            (value == '\r')
+            ) {
+            (*writer->writechar)(writer->streamdata, char_type,
+                                 csvdialect_get_escapechar(writer->dialect));
+          }
+        }
+        else {
+          /* quote in quoted field */
+          if (value == csvdialect_get_quotechar(writer->dialect)) {
+            if (csvdialect_get_doublequote(writer->dialect)) {
+              /* double the quoting character to escape */
+              (*writer->writechar)(writer->streamdata, char_type,
+                                   csvdialect_get_quotechar(writer->dialect));
+            }
+            else {
+              /* apply the escape character */
+              (*writer->writechar)(writer->streamdata, char_type,
+                                   csvdialect_get_escapechar(writer->dialect));
+            }
+          }
+        }
 
-  for (size_t i = 0; i < field_length; ++i) {
-    char_ = (int)value[i];
-    rc    = fputc(char_, fw->file);
+        /* write the actual character to the stream */
+        (*writer->writechar)(writer->streamdata, char_type, value);
+      }
 
-    if (rc != char_) {
-      if (ferror(fw->file)) {
-        perror("fputc()\n");
-        fprintf(stderr,
-                "Encountered error in file %s at line #%d\n",
-                __FILE__,
-                __LINE__);
-        exit(EXIT_FAILURE);
+      /* final quote -- outside the loop */
+      if (needs_quoting) {
+        (*writer->writechar)(writer->streamdata, char_type,
+                             csvdialect_get_quotechar(writer->dialect));
       }
     }
   }
-}
-
-void csv_write_filepath_closer(csvstream_type streamdata) {
-  if (streamdata == NULL) return;
-
-  csvfilewriter fw = (csvfilewriter)streamdata;
-
-  if (fw->file != NULL) {
-    fclose(fw->file);
-  }
-  free(fw);
+  return rc;
 }
 
 /*
- * end private implementation
+ * internal struct for @c streamdata
+ *
+ * no public API provided, implementation not guaranteed
  */
+struct csv_file_writer {
+  const char    *filepath;
+  FILE          *file;
+  csvrecord_type record;
+  csvfield_type  field;
+  char          *buffer;
+  size_t         record_len;
+  size_t         field_len;
+  size_t         record_position;
+  size_t         field_position;
+};

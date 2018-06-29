@@ -63,7 +63,7 @@ typedef enum CSV_LINETERMINATOR_TYPE {
  * @return                opaque pointer to a string, castable to the type
  *                        requested by @p char_type
  */
-inline void* csv_lineterminator_type(
+inline const void* csv_lineterminator_type(
   CSV_LINETERMINATOR_TYPE lineterminator,
   CSV_CHAR_TYPE           char_type) {
   switch (lineterminator) {
@@ -73,13 +73,13 @@ inline void* csv_lineterminator_type(
     case CSV_WCHAR:
       return _CSV_LINETERMINATOR_CRNL_WCHAR;
 
-    case CSV_CHARU8:
+    case CSV_UCHAR8:
       return _CSV_LINETERMINATOR_CRNL_CHARU8;
 
-    case CSV_CHAR16:
+    case CSV_UCHAR16:
       return _CSV_LINETERMINATOR_CRNL_CHAR16;
 
-    case CSV_CHAR32:
+    case CSV_UCHAR32:
       return _CSV_LINETERMINATOR_CRNL_CHAR32;
 
     case CSV_CHAR:
@@ -93,13 +93,13 @@ inline void* csv_lineterminator_type(
     case CSV_WCHAR:
       return _CSV_LINETERMINATOR_CR_WCHAR;
 
-    case CSV_CHARU8:
+    case CSV_UCHAR8:
       return _CSV_LINETERMINATOR_CR_CHARU8;
 
-    case CSV_CHAR16:
+    case CSV_UCHAR16:
       return _CSV_LINETERMINATOR_CR_CHAR16;
 
-    case CSV_CHAR32:
+    case CSV_UCHAR32:
       return _CSV_LINETERMINATOR_CR_CHAR32;
 
     case CSV_CHAR:
@@ -113,13 +113,13 @@ inline void* csv_lineterminator_type(
     case CSV_WCHAR:
       return _CSV_LINETERMINATOR_NL_WCHAR;
 
-    case CSV_CHARU8:
+    case CSV_UCHAR8:
       return _CSV_LINETERMINATOR_NL_CHARU8;
 
-    case CSV_CHAR16:
+    case CSV_UCHAR16:
       return _CSV_LINETERMINATOR_NL_CHAR16;
 
-    case CSV_CHAR32:
+    case CSV_UCHAR32:
       return _CSV_LINETERMINATOR_NL_CHAR32;
 
     case CSV_CHAR:
@@ -134,13 +134,13 @@ inline void* csv_lineterminator_type(
     case CSV_WCHAR:
       return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR;
 
-    case CSV_CHARU8:
+    case CSV_UCHAR8:
       return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8;
 
-    case CSV_CHAR16:
+    case CSV_UCHAR16:
       return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16;
 
-    case CSV_CHAR32:
+    case CSV_UCHAR32:
       return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32;
 
     case CSV_CHAR:

@@ -8,6 +8,7 @@ set(csv_VERSION "${csv_VERSION_MAJOR}.${csv_VERSION_MINOR}.${csv_VERSION_PATCH}"
 
 project(csv_root VERSION ${csv_VERSION} LANGUAGES C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE PATH "" FORCE)
 
 ##### Begin Build Variables
@@ -44,3 +45,10 @@ set(csv_PRIVATE_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/src     CACHE PATH "" FORCE)
 add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(tests)
+
+# copy the compile commands for clang to the source root
+configure_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+  ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+  COPYONLY
+)

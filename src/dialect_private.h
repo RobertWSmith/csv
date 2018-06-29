@@ -13,7 +13,7 @@
 #include "csv/dialect.h"
 
 /**
- * Deep copy of CSV Dialect
+ * @brief Deep copy of CSV Dialect
  *
  * @param[in]  dialect  CSV Dialect type to copy
  *

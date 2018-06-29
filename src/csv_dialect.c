@@ -14,6 +14,9 @@
 #include "csv/dialect.h"
 #include "dialect_private.h"
 
+/*
+ * @brief implementation of the @c csvdialect pointer.
+ */
 struct csv_dialect {
   QUOTE_STYLE              quotestyle;
   CSV_LINETERMINATOR_TYPE  lineterminator;

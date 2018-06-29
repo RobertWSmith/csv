@@ -1,4 +1,0 @@
-"..\\csv-build\\tests\\test_read.exe":
-	debugger: "dbg-gdb"
-	path: "..\\csv-build\\tests\\test_read.exe"
-	cwd: "tests"

@@ -70,22 +70,25 @@ typedef CSV_CHAR_TYPE (*csvstream_saverecord)(csvstream_type  streamdata,
                                               size_t         *length);
 
 /*
+ * Sets the provided record as active
+ */
+typedef void (*csvstream_setrecord)(csvstream_type       streamdata,
+                                    CSV_CHAR_TYPE        char_type,
+                                    const csvrecord_type record,
+                                    size_t               length);
+
+/*
  * return the next field for the writer by reference, return the char type
  * this is the value prior to processing the dialect rules
  */
-typedef CSV_CHAR_TYPE (*csvstream_getnextfield)(csvstream_type streamdata,
-                                                csvrecord_type record,
-                                                size_t         record_length,
-                                                csvfield_type *field,
-                                                size_t        *field_length);
+typedef size_t (*csvstream_setnextfield)(csvstream_type streamdata);
 
 /*
- * write a string to the output stream, when end of record is identified the
+ * write a char to the output stream, when end of record is identified the
  * string will be the line terminator sequence
  */
-typedef void (*csvstream_writestring)(csvstream_type streamdata,
-                                      CSV_CHAR_TYPE  char_type,
-                                      csvfield_type  field,
-                                      size_t         length);
+typedef void (*csvstream_writechar)(csvstream_type           streamdata,
+                                    CSV_CHAR_TYPE            char_type,
+                                    csv_comparison_char_type value);
 
 #endif /* CSV_STREAM_H_ */

@@ -82,7 +82,7 @@ typedef enum CSV_READER_PARSER_STATE {
  *
  * mostly intended to use for logging
  */
-inline const char * const csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
+inline char* csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
   switch (state) {
   case START_RECORD: return "START_RECORD";
 
