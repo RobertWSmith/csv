@@ -301,11 +301,11 @@ csvreturn csvdialect_set_lineterminator(csvdialect              dialect,
 CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect) {
   if (dialect == NULL) {
     ZF_LOGI(
-      "`csvdialect_get_lineterminator` was passed NULL in the dialect argument.");
+      "`dialect` was passed NULL");
     return LINETERMINATOR_SYSTEM_DEFAULT;
   }
 
-  ZF_LOGD("`csvdialect_get_lineterminator` setting `%d`.",
+  ZF_LOGD("returning `%d`.",
           dialect->lineterminator);
   return dialect->lineterminator;
 }
@@ -314,11 +314,11 @@ csvreturn csvdialect_set_quotechar(csvdialect               dialect,
                                    csv_comparison_char_type quotechar) {
   if (dialect == NULL) {
     ZF_LOGI(
-      "`csvdialect_set_quotechar` was passed NULL in the dialect argument.");
+      "`csvdialect` was passed NULL.");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_quotechar` setting `%c`.", (char)quotechar);
+  ZF_LOGD("returning `%c`.", (char)quotechar);
   dialect->quotechar = quotechar;
   return csvreturn_init(true);
 }

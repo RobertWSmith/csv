@@ -82,7 +82,8 @@ csvwriter csvwriter_file_init(csvdialect dialect,
  */
 csvwriter csvwriter_advanced_init(csvdialect             dialect,
                                   csvstream_setrecord    setrecord,
-                                  csvstream_setnextfield getnextfield,
+                                  csvstream_setnextfield setnextfield,
+                                  csvstream_resetfield   resetfield,
                                   csvstream_getnextchar  getnextchar,
                                   csvstream_writechar    writechar,
                                   csvstream_type         streamdata);

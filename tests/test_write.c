@@ -39,47 +39,59 @@ static void file_output_open(const char *const log_path)
 }
 
 void test_CSVWriterInitDestroy(void) {
+  ZF_LOGI("Beginning test_CSVWriterInitDestroy");
   csvdialect dialect = csvdialect_init();
+
+  ZF_LOGI("Testing passing NULL for filepath");
   csvwriter  writer  = csvwriter_init(dialect, NULL);
 
   TEST_ASSERT_NULL(writer);
 
+  ZF_LOGI("Testing passing real filepath");
   writer = csvwriter_init(dialect, "data/test_writer_no_output.csv");
 
+  TEST_ASSERT_NOT_NULL(writer);
+
+  ZF_LOGI("Testing close open CSV Writer");
   csvwriter_close(&writer);
   TEST_ASSERT_NULL(writer);
 
   csvdialect_close(&dialect);
+  ZF_LOGI("Ending test_CSVWriterInitDestroy");
 }
 
 void test_CSVWriterTwoLines(void) {
+  ZF_LOGI("Beginning test_CSVWriterTwoLines");
   csvreturn  rc;
   csvdialect dialect = csvdialect_init();
   csvwriter  writer  = csvwriter_init(dialect, "data/test_writer_two_lines.csv");
 
   TEST_ASSERT_NOT_NULL(writer);
 
-  const char *field_1 = "field_1";
-  const char *field_2 = "field_2";
-  const char *field_3 = "field_3";
+  const char **record = NULL;
+  record = malloc(sizeof *record * 3);
+  TEST_ASSERT_NOT_NULL(record);
+  record[0] = "field_0";
+  record[1] = "field_1";
+  record[2] = "field_2";
 
-  const char **record_1 = { field_1, field_2, field_3 };
-
-  rc = csvwriter_next_record(writer, CSV_CHAR, record_1, 3);
-
+  rc = csvwriter_next_record(writer, CSV_CHAR, (csvrecord_type)record, 3);
   TEST_ASSERT_TRUE(csv_success(rc));
 
-  field_1 = "a";
-  field_2 = "1.2";
-  field_3 = "true";
+  record[0] = "a";
+  record[1] = "1.2";
+  record[2] = "true";
 
-  const char **record_2 = { field_1, field_2, field_3 };
-
-  rc = csvwriter_next_record(writer, CSV_CHAR, record_2, 3);
+  rc = csvwriter_next_record(writer, CSV_CHAR, (csvrecord_type)record, 3);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   csvwriter_close(&writer);
   TEST_ASSERT_NULL(writer);
+
+  csvdialect_close(&dialect);
+  free(record);
+
+  ZF_LOGI("Ending test_CSVWriterTwoLines");
 }
 
 int main(int argc, char **argv) {

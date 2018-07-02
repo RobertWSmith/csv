@@ -81,7 +81,7 @@ typedef void (*csvstream_setrecord)(csvstream_type       streamdata,
  * return the next field for the writer by reference, return the char type
  * this is the value prior to processing the dialect rules
  */
-typedef CSV_STREAM_SIGNAL (*csvstream_setnextfield)(csvstream_type streamdata);
+typedef CSV_STREAM_SIGNAL (*csvstream_setnextfield)(csvstream_type streamdata, size_t *length);
 
 /*
  * write a char to the output stream, when end of record is identified the
@@ -90,5 +90,11 @@ typedef CSV_STREAM_SIGNAL (*csvstream_setnextfield)(csvstream_type streamdata);
 typedef void (*csvstream_writechar)(csvstream_type           streamdata,
                                     CSV_CHAR_TYPE            char_type,
                                     csv_comparison_char_type value);
+
+/*
+ * needed for 'QUOTE_STYLE_MINIMAL' to allow the iterator to rest to
+ * the beginning of the field
+ */
+typedef void (*csvstream_resetfield)(csvstream_type streamdata);
 
 #endif /* CSV_STREAM_H_ */
