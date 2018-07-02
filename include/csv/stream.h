@@ -53,8 +53,8 @@ typedef csvfield_type *csvrecord_type;
 typedef void (*csvstream_close)(csvstream_type streamdata);
 
 /* reader only, get next character from stream */
-typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(csvstream_type
-                                                   streamdata,
+typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(csvstream_type            streamdata,
+                                                   CSV_CHAR_TYPE            *char_type,
                                                    csv_comparison_char_type *value);
 
 /* reader only, append character to existing field buffer */
@@ -81,7 +81,7 @@ typedef void (*csvstream_setrecord)(csvstream_type       streamdata,
  * return the next field for the writer by reference, return the char type
  * this is the value prior to processing the dialect rules
  */
-typedef size_t (*csvstream_setnextfield)(csvstream_type streamdata);
+typedef CSV_STREAM_SIGNAL (*csvstream_setnextfield)(csvstream_type streamdata);
 
 /*
  * write a char to the output stream, when end of record is identified the

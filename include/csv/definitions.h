@@ -14,9 +14,11 @@
 #include "version.h"
 
 typedef enum CSV_STREAM_SIGNAL {
-  CSV_GOOD,
-  CSV_EOF,
-  CSV_ERROR,
+  CSV_GOOD, /**< Next value available */
+  CSV_EOF, /**< End of File */
+  CSV_EOR, /**< End of Record */
+  CSV_END_OF_FIELD, /**< End of field */
+  CSV_ERROR, /**< Some IO Error encountered */
 } CSV_STREAM_SIGNAL;
 
 /**

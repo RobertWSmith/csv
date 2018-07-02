@@ -10,7 +10,9 @@ void test_CSVWriterInitDestroy(void) {
   csvdialect dialect = csvdialect_init();
   csvwriter  writer  = csvwriter_init(dialect, NULL);
 
-  TEST_ASSERT_NOT_NULL(writer);
+  TEST_ASSERT_NULL(writer);
+
+  writer = csvwriter_init(dialect, "data/writer_no_output.csv");
 
   csvwriter_close(&writer);
   TEST_ASSERT_NULL(writer);

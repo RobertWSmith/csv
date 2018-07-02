@@ -82,7 +82,7 @@ typedef enum CSV_READER_PARSER_STATE {
  *
  * mostly intended to use for logging
  */
-inline char* csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
+inline const char* csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
   switch (state) {
   case START_RECORD: return "START_RECORD";
 
@@ -222,6 +222,7 @@ csvfilereader csv_file_open(FILE *fileobj);
  * @see csv/stream.h
  */
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
+                                       CSV_CHAR_TYPE            *char_type,
                                        csv_comparison_char_type *value);
 
 /*
@@ -491,12 +492,14 @@ csvreturn csvreader_next_record(csvreader       reader,
   CSV_STREAM_SIGNAL signal       = CSV_GOOD;
   csvreturn rc;
 
+  *char_type = CSV_CHAR;
+
   ZF_LOGD("Beginning `getnextchar` loop.");
 
   /* burn through any chars that exist at the beginning of the record which
      don't add to a field */
   while (reader->parser_state == START_RECORD) {
-    signal = (*reader->getnextchar)(reader->streamdata, &value);
+    signal = (*reader->getnextchar)(reader->streamdata, char_type, &value);
     ZF_LOGD("signal returned: `%d`, character returned: `%c`.",
             signal,
             (char)value);
@@ -522,7 +525,7 @@ csvreturn csvreader_next_record(csvreader       reader,
      next start of record */
   if (signal == CSV_GOOD) {
     do {
-      signal = (*reader->getnextchar)(reader->streamdata, &value);
+      signal = (*reader->getnextchar)(reader->streamdata, char_type, &value);
       ZF_LOGD("signal returned: `%d`, character returned: `%c`.",
               signal,
               (char)value);
@@ -694,47 +697,53 @@ csvfilereader csv_file_open(FILE *fileobj) {
 }
 
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
+                                       CSV_CHAR_TYPE            *char_type,
                                        csv_comparison_char_type *value) {
-  ZF_LOGI("`csv_file_getnextchar` called.");
+  ZF_LOGI("called w/ streamdata: `%p`", streamdata);
   int c = 0;
 
   if (streamdata == NULL) {
+    *char_type = CSV_UNDEFINED;
+    *value     = CSV_UNDEFINED_CHAR;
     ZF_LOGD(
       "`csvstream_type` provided was NULL, and must point to a valid memory address.");
-    *value = CSV_UNDEFINED_CHAR;
     return CSV_ERROR;
   }
 
   csvfilereader fr = (csvfilereader)streamdata;
 
   if (fr->file == NULL) {
-    ZF_LOGD(
-      "`csvstream_type` `file` provided was NULL, and must point to a valid memory address for a `FILE*`.");
-    *value = 0;
+    *char_type = CSV_UNDEFINED;
+    *value     = CSV_UNDEFINED_CHAR;
+    ZF_LOGD("`streamdata->file` provided was NULL -- exiting with error.");
     return CSV_ERROR;
   }
 
-  ZF_LOGD("`csv_file_getnextchar` prior to calling `fgetc(fr->file)`.");
-
-  if ((c = fgetc(fr->file)) != EOF) {
-    *value = (csv_comparison_char_type)c;
-    ZF_LOGD("`csv_file_getnextchar` completed with `%c`.", (char)(*value));
+  if ((c = getc(fr->file)) != EOF) {
+    /* always 8-bit in this implementation */
+    *char_type = CSV_CHAR;
+    *value     = (csv_comparison_char_type)c;
+    ZF_LOGD("value: `%c` CSV_STREAM_SIGNAL: `CSV_GOOD`", (char)(*value));
     return CSV_GOOD;
   }
-  ZF_LOGD("`csv_file_getnextchar` after calling `fgetc(fr->file)`.");
 
   if (feof(fr->file)) {
     ZF_LOGD("End of file indicator encountered.");
-    *value = 0;
+    *char_type = CSV_CHAR;
+    *value     = 0;
+    ZF_LOGD("value: `%c` CSV_STREAM_SIGNAL: `CSV_EOF`", (char)(*value));
     return CSV_EOF;
   }
 
   if (ferror(fr->file)) {
-    ZF_LOGD("IO Error Encountered.");
+    ZF_LOGI("IO Error Encountered.");
+    *char_type = CSV_UNDEFINED;
+    *value     = CSV_UNDEFINED_CHAR;
     perror("Error detected while reading CSV.");
-    *value = CSV_UNDEFINED_CHAR;
+    ZF_LOGD("value: `%c` CSV_STREAM_SIGNAL: `CSV_ERROR`", (char)(*value));
     return CSV_ERROR;
   }
+
   return CSV_GOOD;
 }
 
