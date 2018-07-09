@@ -1,0 +1,13 @@
+---
+BasedOnStyle:                               Google
+Language:                                   Cpp
+AlignConsecutiveAssignments:                true
+AlignConsecutiveDeclarations:               true
+AllowAllParametersOfDeclarationOnNextLine:  true
+AllowShortCaseLabelsOnASingleLine:          true
+AllowShortFunctionsOnASingleLine:           true
+AllowShortIfStatementsOnASingleLine:        true
+AllowShortLoopsOnASingleLine:               true
+BinPackArguments:                           false
+BinPackParameters:                          false
+...

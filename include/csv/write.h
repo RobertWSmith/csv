@@ -4,10 +4,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "version.h"
 #include "definitions.h"
 #include "dialect.h"
 #include "stream.h"
+#include "version.h"
 
 /**
  * @brief CSV Writer datastructure
@@ -15,7 +15,6 @@
  * Manages all the information required to format and write to a CSV file.
  */
 typedef struct csv_writer *csvwriter;
-
 
 /**
  * @brief CSV Writer initializer
@@ -43,8 +42,7 @@ typedef struct csv_writer *csvwriter;
  * @see csvwriter_close
  * @see csvwriter_next_record
  */
-csvwriter csvwriter_init(csvdialect  dialect,
-                         const char *filepath);
+csvwriter csvwriter_init(csvdialect dialect, const char *filepath);
 
 /**
  * @brief CSV Writer initializer from File object
@@ -59,8 +57,7 @@ csvwriter csvwriter_init(csvdialect  dialect,
  * @see csvwriter_close
  * @see csvwriter_next_record
  */
-csvwriter csvwriter_file_init(csvdialect dialect,
-                              FILE      *fileobj);
+csvwriter csvwriter_file_init(csvdialect dialect, FILE *fileobj);
 
 /**
  * @brief CSV Writer advanced initializer
@@ -97,8 +94,7 @@ csvwriter csvwriter_advanced_init(csvdialect             dialect,
  *
  * @return            Initialized CSV writer
  */
-csvwriter csvwriter_set_closer(csvwriter       writer,
-                               csvstream_close closer);
+csvwriter csvwriter_set_closer(csvwriter writer, csvstream_close closer);
 
 /*
  * maybe there isn't an 'advanced' API?
@@ -117,7 +113,7 @@ csvwriter csvwriter_set_closer(csvwriter       writer,
  *
  * @see csvwriter_init
  */
-void      csvwriter_close(csvwriter *writer);
+void csvwriter_close(csvwriter *writer);
 
 /**
  * @brief Set next CSV Record to CSV Writer's file

@@ -10,8 +10,8 @@
 
 #include <stddef.h>
 
-#include "version.h"
 #include "definitions.h"
+#include "version.h"
 
 /**
  * @brief CSV Stream data container for callbacks
@@ -53,9 +53,10 @@ typedef csvfield_type *csvrecord_type;
 typedef void (*csvstream_close)(csvstream_type streamdata);
 
 /* reader only, get next character from stream */
-typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(csvstream_type            streamdata,
-                                                   CSV_CHAR_TYPE            *char_type,
-                                                   csv_comparison_char_type *value);
+typedef CSV_STREAM_SIGNAL (*csvstream_getnextchar)(
+    csvstream_type            streamdata,
+    CSV_CHAR_TYPE *           char_type,
+    csv_comparison_char_type *value);
 
 /* reader only, append character to existing field buffer */
 typedef void (*csvstream_appendfield)(csvstream_type           streamdata,
@@ -67,7 +68,7 @@ typedef void (*csvstream_savefield)(csvstream_type streamdata);
 /* finalize record, and return it by reference */
 typedef CSV_CHAR_TYPE (*csvstream_saverecord)(csvstream_type  streamdata,
                                               csvrecord_type *fields,
-                                              size_t         *length);
+                                              size_t *        length);
 
 /*
  * Sets the provided record as active
@@ -81,7 +82,8 @@ typedef void (*csvstream_setrecord)(csvstream_type       streamdata,
  * return the next field for the writer by reference, return the char type
  * this is the value prior to processing the dialect rules
  */
-typedef CSV_STREAM_SIGNAL (*csvstream_setnextfield)(csvstream_type streamdata, size_t *length);
+typedef CSV_STREAM_SIGNAL (*csvstream_setnextfield)(csvstream_type streamdata,
+                                                    size_t *       length);
 
 /*
  * write a char to the output stream, when end of record is identified the

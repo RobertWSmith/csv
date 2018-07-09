@@ -1,11 +1,5 @@
 /**
- * Significantly inspired by Python's '_csv.c' implementation.
- *
- * https://github.com/python/cpython/blob/master/Modules/_csv.c
- */
-
-/*
- * @internal
+ * @cond INTERNAL
  *
  * @file csv_read.c
  * @author Robert W. Smith
@@ -14,6 +8,10 @@
  *
  * Private documentation, API subject to change. Parts of this file are useful
  * as example implementations of the callback API.
+ *
+ * Significantly inspired by Python's '_csv.c' implementation.
+ *
+ * https://github.com/python/cpython/blob/master/Modules/_csv.c
  *
  * @see csv/definitions.h
  * @see csv/dialect.h
@@ -28,85 +26,80 @@
 #include <string.h>
 
 #ifndef ZF_LOG_LEVEL
-# define ZF_LOG_LEVEL ZF_LOG_VERBOSE
+#define ZF_LOG_LEVEL ZF_LOG_VERBOSE
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
 // #include "csv.h"
-#include "csv/version.h"
 #include "csv/definitions.h"
 #include "csv/dialect.h"
-#include "csv/stream.h"
 #include "csv/read.h"
+#include "csv/stream.h"
+#include "csv/version.h"
 #include "dialect_private.h"
 
-/*
- * @internal
+/**
  * @brief Flags to store the parser state
  *
  * These flags help determine how the next character in the stream will be
  * evaluated.
  */
 typedef enum CSV_READER_PARSER_STATE {
-  START_RECORD,           /*< Indicates that the parser is at the beginning of a
-                             new record, current field and record buffer
-                             positions should both be zero. */
-  START_FIELD,            /*< Indicates the parser is at the beginning of a new
-                             field, the field buffer position should be at zero
-                           */
-  ESCAPED_CHAR,           /*< Indicates the prior character indicates the next
-                             character should be treated as though it has been
-                             escaped */
-  IN_FIELD,               /*< Indicates the parser is inside of a field, and is
-                             watching for a delimiter to find the end of the
-                             field */
-  IN_QUOTED_FIELD,        /*< Indicates the parser is in a quoted field, and is
-                             watching for another quote character before the
-                             delimiter */
-  ESCAPE_IN_QUOTED_FIELD, /*< Indicates that the field is quoted and the prior
+  START_RECORD,    /**< Indicates that the parser is at the beginning of a
+                      new record, current field and record buffer
+                      positions should both be zero. */
+  START_FIELD,     /**< Indicates the parser is at the beginning of a new
+                      field, the field buffer position should be at zero
+                    */
+  ESCAPED_CHAR,    /**< Indicates the prior character indicates the next
+                      character should be treated as though it has been
+                      escaped */
+  IN_FIELD,        /**< Indicates the parser is inside of a field, and is
+                      watching for a delimiter to find the end of the
+                      field */
+  IN_QUOTED_FIELD, /**< Indicates the parser is in a quoted field, and is
+                      watching for another quote character before the
+                      delimiter */
+  ESCAPE_IN_QUOTED_FIELD, /**< Indicates that the field is quoted and the prior
                              character was an escape */
-  QUOTE_IN_QUOTED_FIELD,  /*< Indicates a quote character was encountered in a
+  QUOTE_IN_QUOTED_FIELD,  /**< Indicates a quote character was encountered in a
                              quoted field, determines whether to consider this
                              as a field character or a special character for
                              parsing the CSV */
-  EAT_CRNL,               /*< Indicates the parser should disregard any Carriage
-                             Returns or New Line characters, generally if
-                             they're encountered at the end of a line */
-  AFTER_ESCAPED_CRNL,     /*< Indicates that the parser is immediately after a
-                             Carriage Return or New Line which should be
-                             considered part of the text of a field */
+  EAT_CRNL,           /**< Indicates the parser should disregard any Carriage
+                         Returns or New Line characters, generally if
+                         they're encountered at the end of a line */
+  AFTER_ESCAPED_CRNL, /**< Indicates that the parser is immediately after a
+                         Carriage Return or New Line which should be
+                         considered part of the text of a field */
 } CSV_READER_PARSER_STATE;
 
-/*
- * convert CSV Reader Parser State enum value to string
+/**
+ * @brief convert CSV Reader Parser State enum value to string
  *
- * mostly intended to use for logging
+ * intended to use for logging
+ *
+ * @param[in] state CSV Reader Parser State
+ *
+ * @return string representation of CSV Reader Parser State enumeration value
+ *
+ * @see CSV_READER_PARSER_STATE
  */
-inline const char* csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
+inline const char *csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
   switch (state) {
-  case START_RECORD: return "START_RECORD";
-
-  case START_FIELD: return "START_FIELD";
-
-  case ESCAPED_CHAR: return "ESCAPED_CHAR";
-
-  case IN_FIELD: return "IN_FIELD";
-
-  case IN_QUOTED_FIELD: return "IN_QUOTED_FIELD";
-
-  case ESCAPE_IN_QUOTED_FIELD: return "ESCAPE_IN_QUOTED_FIELD";
-
-  case QUOTE_IN_QUOTED_FIELD: return "QUOTE_IN_QUOTED_FIELD";
-
-  case EAT_CRNL: return "EAT_CRNL";
-
-  case AFTER_ESCAPED_CRNL: return "AFTER_ESCAPED_CRNL";
-
-  default: return "UNDEFINED";
+    case START_RECORD: return "START_RECORD";
+    case START_FIELD: return "START_FIELD";
+    case ESCAPED_CHAR: return "ESCAPED_CHAR";
+    case IN_FIELD: return "IN_FIELD";
+    case IN_QUOTED_FIELD: return "IN_QUOTED_FIELD";
+    case ESCAPE_IN_QUOTED_FIELD: return "ESCAPE_IN_QUOTED_FIELD";
+    case QUOTE_IN_QUOTED_FIELD: return "QUOTE_IN_QUOTED_FIELD";
+    case EAT_CRNL: return "EAT_CRNL";
+    case AFTER_ESCAPED_CRNL: return "AFTER_ESCAPED_CRNL";
   }
 }
 
-/*
+/**
  * @brief Implementation of the CSV Reader.
  *
  * With respect to the @p streamdata field, this is supplied as an opaque
@@ -127,29 +120,25 @@ inline const char* csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
  * @see csv/dialect.h
  */
 struct csv_reader {
-  csvdialect dialect;                   /*< CSV Dialect, which is the
-                                           configuration type for the CSV parser
-                                         */
-  csvstream_type streamdata;            /*< Arbitrary pointer to a user-defined
-                                           struct. See description above */
-  csvstream_getnextchar getnextchar;    /*< Callback which supplies the next
-                                           character in the stream */
-  csvstream_appendfield appendchar;     /*< Callback which appends the supplied
-                                           character to the end of the current
-                                           field buffer */
-  csvstream_savefield savefield;        /*< Callback which finalizes the current
-                                           field and appends the string to the
-                                           end of the record array */
-  csvstream_saverecord saverecord;      /*< Callback which finalizes the record
-                                           and prepares it to return to the
-                                           caller */
-  csvstream_close closer;               /*< Optional callback which releases the
-                                           resources held by @p streamdata */
-  CSV_READER_PARSER_STATE parser_state; /*< Holds the parser state, which
+  csvdialect dialect; /**< CSV Dialect, which is the configuration type for the
+                         CSV parser */
+  csvstream_type streamdata; /**< Arbitrary pointer to a user-defined struct.
+                                See description above */
+  csvstream_getnextchar getnextchar; /**< Callback which supplies the next
+                                        character in the stream */
+  csvstream_appendfield appendchar;  /**< Callback which appends the supplied
+                      character to the end  of the current field buffer */
+  csvstream_savefield savefield; /**< Callback which finalizes the current field
+                    and appends the string to the end of the record array */
+  csvstream_saverecord saverecord; /**< Callback which finalizes the record and
+                                      prepares it to return to the caller */
+  csvstream_close closer; /**< Optional callback which releases the resources
+                             held by @p streamdata */
+  CSV_READER_PARSER_STATE parser_state; /**< Holds the parser state, which
                                            controls the parser algorithm */
 };
 
-/*
+/**
  * @brief CSV File Reader
  *
  * Private struct pointer which is used as a @c streamdata input, maintains
@@ -157,7 +146,7 @@ struct csv_reader {
  */
 typedef struct csv_file_reader *csvfilereader;
 
-/*
+/**
  * @brief Initializes the private struct used to read from @c stdio streams
  *
  * This function initializes the @c csvfilereader state to NULL on the stream
@@ -167,7 +156,7 @@ typedef struct csv_file_reader *csvfilereader;
  */
 csvfilereader csvfilereader_init(void);
 
-/*
+/**
  * @brief Initializes the private struct used to read from a filepath
  *
  * This method uses @p filepath as a parameter when calling @c fopen. This
@@ -184,7 +173,7 @@ csvfilereader csvfilereader_init(void);
  */
 csvfilereader csv_filepath_open(char const *filepath);
 
-/*
+/**
  * @brief Initializes the private struct used to read from a @c FILE*
  *
  * This method uses @p fileobj as a parameter and does not call @c fopen. This
@@ -201,8 +190,7 @@ csvfilereader csv_filepath_open(char const *filepath);
  */
 csvfilereader csv_file_open(FILE *fileobj);
 
-
-/*
+/**
  * @brief Get next character in the input stream
  *
  * Callback conforming to the @c csvstream_getnextchar definition
@@ -222,10 +210,10 @@ csvfilereader csv_file_open(FILE *fileobj);
  * @see csv/stream.h
  */
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
-                                       CSV_CHAR_TYPE            *char_type,
+                                       CSV_CHAR_TYPE *           char_type,
                                        csv_comparison_char_type *value);
 
-/*
+/**
  * @brief Append a character to the end of the current field buffer
  *
  * Callback conforming to the @c csvstream_appendfield definition
@@ -242,7 +230,7 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
 void csv_file_appendchar(csvstream_type           streamdata,
                          csv_comparison_char_type value);
 
-/*
+/**
  * @brief Save field as next value in current record buffer
  *
  * Callback conforming to the @c csvstream_savefield definition
@@ -256,9 +244,9 @@ void csv_file_appendchar(csvstream_type           streamdata,
  *
  * @see csv/stream.h
  */
-void          csv_file_savefield(csvstream_type streamdata);
+void csv_file_savefield(csvstream_type streamdata);
 
-/*
+/**
  * @brief Save record in preparation of returning it to the caller
  *
  * Callback conforming to the @c csvstream_saverecord definition
@@ -281,9 +269,9 @@ void          csv_file_savefield(csvstream_type streamdata);
  */
 CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
                                   csvrecord_type *fields,
-                                  size_t         *length);
+                                  size_t *        length);
 
-/*
+/**
  * @brief Release resources for CSV readers initialized with a filepath
  *
  * Closes the @c FILE* opened with the filepath and releases the allocated
@@ -293,9 +281,9 @@ CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
  *
  * @see csv/stream.h
  */
-void        csv_read_filepath_close(csvstream_type streamdata);
+void csv_read_filepath_close(csvstream_type streamdata);
 
-/*
+/**
  * @brief Release resources for CSV readers initialized with a @c FILE*
  *
  * Frees the allocated buffers, does not release the file stream
@@ -304,9 +292,9 @@ void        csv_read_filepath_close(csvstream_type streamdata);
  *
  * @see csv/stream.h
  */
-void        csv_read_file_close(csvstream_type streamdata);
+void csv_read_file_close(csvstream_type streamdata);
 
-/*
+/**
  * @brief Default initializer for the CSV Reader
  *
  * Initializes all fields to @c NULL, except the @p dialect. If @p dialect is
@@ -318,9 +306,9 @@ void        csv_read_file_close(csvstream_type streamdata);
  * @see csvreader_init
  * @see csvreader_advanced_init
  */
-csvreader   _csvreader_init(csvdialect dialect);
+csvreader _csvreader_init(csvdialect dialect);
 
-/*
+/**
  * @brief Determine what should be done with the next character in the stream
  *
  * This function takes into account the current state of the parser and then
@@ -328,8 +316,7 @@ csvreader   _csvreader_init(csvdialect dialect);
  * field, if it indicates a field boundary has been determined, a record
  * boundary or the end of the stream.
  */
-inline void parse_value(csvreader                reader,
-                        csv_comparison_char_type value);
+inline void parse_value(csvreader reader, csv_comparison_char_type value);
 
 /*
  * end of private forward declarations
@@ -338,13 +325,11 @@ inline void parse_value(csvreader                reader,
 /*
  * API implementations
  */
-csvreader csvreader_init(csvdialect  dialect,
-                         const char *filepath) {
-  ZF_LOGI("arguments dialect: `%p`, filepath: `%s`.",
-          dialect,
-          filepath);
-  csvreader reader = NULL;
-  csvfilereader fr = NULL;
+csvreader csvreader_init(csvdialect dialect, const char *filepath) {
+  ZF_LOGI(
+      "arguments dialect: `%p`, filepath: `%s`.", (void *)dialect, filepath);
+  csvreader     reader = NULL;
+  csvfilereader fr     = NULL;
 
   if ((fr = csv_filepath_open(filepath)) == NULL) {
     ZF_LOGI("`csvfilereader` could not be allocated.");
@@ -370,17 +355,16 @@ csvreader csvreader_init(csvdialect  dialect,
     return NULL;
   }
 
-  ZF_LOGD("`csvreader` successfully allocated at: `%p`.", reader);
+  ZF_LOGD("`csvreader` successfully allocated at: `%p`.", (void *)reader);
   return reader;
 }
 
-csvreader csvreader_file_init(csvdialect dialect,
-                              FILE      *fileobj) {
+csvreader csvreader_file_init(csvdialect dialect, FILE *fileobj) {
   ZF_LOGI("arguments dialect: `%p`, fileobj: `%p`.",
-          dialect,
-          fileobj);
-  csvreader reader = NULL;
-  csvfilereader fr = NULL;
+          (void *)dialect,
+          (void *)fileobj);
+  csvreader     reader = NULL;
+  csvfilereader fr     = NULL;
 
   if ((fr = csv_file_open(fileobj)) == NULL) {
     ZF_LOGI("`csvfilereader` could not be allocated.");
@@ -406,7 +390,7 @@ csvreader csvreader_file_init(csvdialect dialect,
     return NULL;
   }
 
-  ZF_LOGD("`csvreader` successfully allocated at: `%p`.", reader);
+  ZF_LOGD("`csvreader` successfully allocated at: `%p`.", (void *)reader);
   return reader;
 }
 
@@ -417,26 +401,27 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
                                   csvstream_saverecord  saverecord,
                                   csvstream_type        streamdata) {
   ZF_LOGI(
-    "arguments dialect: `%p` getnextchar: `%p` appendchar: `%p` savefield: `%p` saverecord: `%p` streamdata: `%p`.",
-    dialect,
-    getnextchar,
-    appendchar,
-    savefield,
-    saverecord,
-    streamdata);
+      "arguments dialect: `%p` getnextchar: `%p` appendchar: `%p` savefield: "
+      "`%p` saverecord: `%p` streamdata: `%p`.",
+      (void *)dialect,
+      (void *)getnextchar,
+      (void *)appendchar,
+      (void *)savefield,
+      (void *)saverecord,
+      (void *)streamdata);
 
   /* validation step */
   /* other than dialect, all arguments must be non-null */
   if ((getnextchar == NULL) || (appendchar == NULL) || (savefield == NULL) ||
       (saverecord == NULL) || (streamdata == NULL)) {
     ZF_LOGI(
-      "failed due to unexpected NULL. getnextchar: `%s` appendchar: `%s` savefield: `%s` saverecord: `%s` streamdata: `%s`",
-      (getnextchar == NULL) ? "NULL" : "NOT NULL",
-      (appendchar == NULL) ? "NULL" : "NOT NULL",
-      (savefield == NULL) ? "NULL" : "NOT NULL",
-      (saverecord == NULL) ? "NULL" : "NOT NULL",
-      (streamdata == NULL) ? "NULL" : "NOT NULL"
-      );
+        "failed due to unexpected NULL. getnextchar: `%s` appendchar: `%s` "
+        "savefield: `%s` saverecord: `%s` streamdata: `%s`",
+        (getnextchar == NULL) ? "NULL" : "NOT NULL",
+        (appendchar == NULL) ? "NULL" : "NOT NULL",
+        (savefield == NULL) ? "NULL" : "NOT NULL",
+        (saverecord == NULL) ? "NULL" : "NOT NULL",
+        (streamdata == NULL) ? "NULL" : "NOT NULL");
     return NULL;
   }
 
@@ -451,8 +436,7 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
   return reader;
 }
 
-csvreader csvreader_set_closer(csvreader       reader,
-                               csvstream_close closer) {
+csvreader csvreader_set_closer(csvreader reader, csvstream_close closer) {
   if (reader == NULL) {
     ZF_LOGI("`called with NULL `reader`.");
     return NULL;
@@ -463,7 +447,7 @@ csvreader csvreader_set_closer(csvreader       reader,
 }
 
 void csvreader_close(csvreader *reader) {
-  ZF_LOGI("called reader: `%p`", *reader);
+  ZF_LOGI("called reader: `%p`", (void *)(*reader));
 
   if ((*reader) == NULL) {
     ZF_LOGI("`reader` referenced a NULL pointer, exiting function early.");
@@ -474,7 +458,8 @@ void csvreader_close(csvreader *reader) {
 
   if (((*reader)->closer) != NULL) {
     ZF_LOGI(
-      "Calling the `csvstream_close` function supplied to close the stream data.");
+        "Calling the `csvstream_close` function supplied to close the stream "
+        "data.");
     (*((*reader)->closer))((*reader)->streamdata);
   }
 
@@ -484,13 +469,13 @@ void csvreader_close(csvreader *reader) {
 }
 
 csvreturn csvreader_next_record(csvreader       reader,
-                                CSV_CHAR_TYPE  *char_type,
+                                CSV_CHAR_TYPE * char_type,
                                 csvrecord_type *record,
-                                size_t         *record_length) {
-  ZF_LOGI("called reader: `%p`", reader);
-  csv_comparison_char_type value = 0;
-  CSV_STREAM_SIGNAL signal       = CSV_GOOD;
-  csvreturn rc;
+                                size_t *        record_length) {
+  ZF_LOGI("called reader: `%p`", (void *)reader);
+  csv_comparison_char_type value  = 0;
+  CSV_STREAM_SIGNAL        signal = CSV_GOOD;
+  csvreturn                rc;
 
   *char_type = CSV_CHAR;
 
@@ -514,8 +499,7 @@ csvreturn csvreader_next_record(csvreader       reader,
     if (signal == CSV_GOOD) {
       ZF_LOGD("Signal indicates good value returned, beginning to parse.");
       parse_value(reader, value);
-    }
-    else {
+    } else {
       ZF_LOGD("Signal indicates EOF or Error, ending loop.");
       break;
     }
@@ -540,15 +524,14 @@ csvreturn csvreader_next_record(csvreader       reader,
       if (signal == CSV_GOOD) {
         ZF_LOGD("Signal indicates good value returned, beginning to parse.");
         parse_value(reader, value);
-      }
-      else {
+      } else {
         ZF_LOGD("Signal indicates EOF or Error, ending loop.");
         break;
       }
     } while (reader->parser_state != START_RECORD);
   }
 
-  size_t len = 0;
+  size_t len     = 0;
   *char_type     = (*reader->saverecord)(reader->streamdata, record, &len);
   *record_length = len;
 
@@ -557,8 +540,7 @@ csvreturn csvreader_next_record(csvreader       reader,
     rc        = csvreturn_init(true);
     rc.io_eof = 1;
     return rc;
-  }
-  else if (signal != CSV_GOOD) {
+  } else if (signal != CSV_GOOD) {
     ZF_LOGI("CSV Reader found IO error state encountered.");
     rc          = csvreturn_init(false);
     rc.io_error = 1;
@@ -587,7 +569,7 @@ struct csv_file_reader {
   FILE *file;
 
   char **record;
-  char  *field;
+  char * field;
   size_t capacity_f;
   size_t size_f;
   size_t capacity_r;
@@ -618,8 +600,9 @@ csvfilereader csvfilereader_init(void) {
   fr->capacity_f = 256;
 
   if ((fr->field = malloc(sizeof *fr->field * fr->capacity_f)) == NULL) {
-    ZF_LOGD("`csvfilereader->field` could not be allocated with a size of `%lu`.",
-            (long unsigned int)fr->capacity_f);
+    ZF_LOGD(
+        "`csvfilereader->field` could not be allocated with a size of `%lu`.",
+        (long unsigned)fr->capacity_f);
     free(fr);
     return NULL;
   }
@@ -630,13 +613,13 @@ csvfilereader csvfilereader_init(void) {
 
   if ((fr->record = malloc(sizeof *fr->record * fr->capacity_r)) == NULL) {
     ZF_LOGD(
-      "`csvfilereader->record` could not be allocated with a size of `%lu`.",
-      (long unsigned int)fr->capacity_r);
+        "`csvfilereader->record` could not be allocated with a size of `%lu`.",
+        (long unsigned)fr->capacity_r);
     free(fr->field);
     free(fr);
     return NULL;
   }
-  ZF_LOGD("`csvfilereader` successfully allocated at `%p`.", fr);
+  ZF_LOGD("`csvfilereader` successfully allocated at `%p`.", (void *)fr);
   return fr;
 }
 
@@ -648,15 +631,17 @@ csvfilereader csv_filepath_open(char const *filepath) {
   ZF_LOGI("`csv_filepath_open` called with filepath: `%s`.", filepath);
 
   if (filepath == NULL) {
-    ZF_LOGD("`csvfilereader` filepath cannot be a NULL string, returning NULL.");
+    ZF_LOGD(
+        "`csvfilereader` filepath cannot be a NULL string, returning NULL.");
     return NULL;
   }
 
-  csvfilereader fr = NULL;
-  FILE *fileobj    = NULL;
+  csvfilereader fr      = NULL;
+  FILE *        fileobj = NULL;
 
   if ((fileobj = fopen(filepath, "rb")) == NULL) {
-    ZF_LOGD("`csvfilereader` Filepath could not be opened with a call to `fopen`.");
+    ZF_LOGD(
+        "`csvfilereader` Filepath could not be opened with a call to `fopen`.");
     return NULL;
   }
 
@@ -676,7 +661,7 @@ csvfilereader csv_filepath_open(char const *filepath) {
  * make a file reader from a supplied FILE*
  */
 csvfilereader csv_file_open(FILE *fileobj) {
-  ZF_LOGI("`csv_file_open` called with `fileobj`: `%p`.", fileobj);
+  ZF_LOGI("`csv_file_open` called with `fileobj`: `%p`.", (void *)fileobj);
 
   if (fileobj == NULL) {
     ZF_LOGD("`csvfilereader` `fileobj` cannot be NULL.");
@@ -697,7 +682,7 @@ csvfilereader csv_file_open(FILE *fileobj) {
 }
 
 CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
-                                       CSV_CHAR_TYPE            *char_type,
+                                       CSV_CHAR_TYPE *           char_type,
                                        csv_comparison_char_type *value) {
   ZF_LOGI("called w/ streamdata: `%p`", streamdata);
   int c = 0;
@@ -706,7 +691,8 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
     *char_type = CSV_UNDEFINED;
     *value     = CSV_UNDEFINED_CHAR;
     ZF_LOGD(
-      "`csvstream_type` provided was NULL, and must point to a valid memory address.");
+        "`csvstream_type` provided was NULL, and must point to a valid memory "
+        "address.");
     return CSV_ERROR;
   }
 
@@ -749,7 +735,8 @@ CSV_STREAM_SIGNAL csv_file_getnextchar(csvstream_type            streamdata,
 
 void csv_file_appendchar(csvstream_type           streamdata,
                          csv_comparison_char_type value) {
-  ZF_LOGI("`csv_file_appendchar` called with value argument `%c`.", (char)value);
+  ZF_LOGI("`csv_file_appendchar` called with value argument `%c`.",
+          (char)value);
 
   if (streamdata == NULL) {
     ZF_LOGD("`csvstream_type` provided was NULL, bad value.");
@@ -761,20 +748,21 @@ void csv_file_appendchar(csvstream_type           streamdata,
   /* expand field, if neccessary. hopefully efficiently, needs validation */
   if ((fr->size_f + 1) >= fr->capacity_f) {
     ZF_LOGD(
-      "`csvfilereader` field size required exceeds capacity, calling `realloc` to expand.");
+        "`csvfilereader` field size required exceeds capacity, calling "
+        "`realloc` to expand.");
 
     if (fr->capacity_f > 4096) {
       ZF_LOGD("`csvfilereader` field is greater than 4KiB, expanding by 1KiB.");
       fr->capacity_f += 1024;
-    }
-    else {
+    } else {
       ZF_LOGD(
-        "`csvfilereader` field is less than 4KiB, doubling current capacity.");
+          "`csvfilereader` field is less than 4KiB, doubling current "
+          "capacity.");
       fr->capacity_f *= 2;
     }
     fr->field = realloc(fr->field, (fr->capacity_f + 1));
     ZF_LOGI("`csvfilereader` field reallocated to new size of: `%lu`.",
-            (long unsigned int)fr->capacity_f);
+            (long unsigned)fr->capacity_f);
 
     memset((fr->field + fr->size_f), 0, ((fr->capacity_f + 1) - fr->size_f));
   }
@@ -782,7 +770,7 @@ void csv_file_appendchar(csvstream_type           streamdata,
   fr->field[fr->size_f++] = (char)value;
   ZF_LOGD("Appending character to field: `%c` at position: `%lu`.",
           (char)value,
-          (long unsigned int)fr->size_f);
+          (long unsigned)fr->size_f);
 }
 
 void csv_file_savefield(csvstream_type streamdata) {
@@ -793,26 +781,28 @@ void csv_file_savefield(csvstream_type streamdata) {
     return;
   }
 
-  csvfilereader fr = (csvfilereader)streamdata;
-  char *temp       = NULL;
+  csvfilereader fr   = (csvfilereader)streamdata;
+  char *        temp = NULL;
 
   /* grow field, if neccessary */
   if ((fr->size_r + 1) >= fr->capacity_r) {
     ZF_LOGD(
-      "`csvfilereader` record size required exceeds capacity, calling `realloc` to expand.");
+        "`csvfilereader` record size required exceeds capacity, calling "
+        "`realloc` to expand.");
 
     if (fr->capacity_r > 128) {
       ZF_LOGD(
-        "`csvfilereader` record capacity greater than 128, expanding by 128.");
+          "`csvfilereader` record capacity greater than 128, expanding by "
+          "128.");
       fr->capacity_r += 128;
-    }
-    else {
-      ZF_LOGD("`csvfilereader` record capacity less than 128, doubling capacity.");
+    } else {
+      ZF_LOGD(
+          "`csvfilereader` record capacity less than 128, doubling capacity.");
       fr->capacity_r *= 2;
     }
     fr->record = realloc(fr->record, fr->capacity_r);
     ZF_LOGI("`csvfilereader` record reallocated to new size of: `%lu`.",
-            (long unsigned int)fr->capacity_r);
+            (long unsigned)fr->capacity_r);
   }
 
   if ((temp = calloc(fr->size_f + 1, sizeof *fr->field)) == NULL) {
@@ -825,7 +815,7 @@ void csv_file_savefield(csvstream_type streamdata) {
   memcpy(temp, fr->field, fr->size_f);
   ZF_LOGD("Completed copying field to temp, value: `%s`.", temp);
   fr->record[fr->size_r] = temp;
-  fr->size_r            += 1;
+  fr->size_r += 1;
 
   /* set field back to the beginning of the field */
   fr->size_f = 0;
@@ -835,7 +825,7 @@ void csv_file_savefield(csvstream_type streamdata) {
 
 CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
                                   csvrecord_type *fields,
-                                  size_t         *length) {
+                                  size_t *        length) {
   ZF_LOGI("`csv_file_saverecord` called.");
 
   if (streamdata == NULL) {
@@ -849,9 +839,9 @@ CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
 
   /* allocate string array to pass the pointer list to caller */
   char **record = NULL;
-  *length = fr->size_r;
+  *length       = fr->size_r;
   ZF_LOGD("`csv_file_saverecord` record length `%lu`.",
-          (long unsigned int)(*length));
+          (long unsigned)(*length));
 
   if ((record = malloc(sizeof *record * fr->size_r)) == NULL) {
     ZF_LOGD("`csv_file_saverecord` record could not be allocated.");
@@ -866,7 +856,7 @@ CSV_CHAR_TYPE csv_file_saverecord(csvstream_type  streamdata,
     record[i]     = fr->record[i];
     fr->record[i] = NULL;
     ZF_LOGV("`csv_file_saverecord` field: `%lu` value: `%s`.",
-            (long unsigned int)i,
+            (long unsigned)i,
             record[i]);
   }
   *fields = (csvrecord_type)record;
@@ -908,7 +898,7 @@ void csv_read_filepath_close(csvstream_type streamdata) {
       for (size_t i = 0; i < fr->size_r; ++i) {
         if (fr->record[i] != NULL) {
           ZF_LOGD("csvfilereader->record[%lu] is not null, freeing.",
-                  (long unsigned int)i);
+                  (long unsigned)i);
           free(fr->record[i]);
         }
       }
@@ -941,7 +931,7 @@ void csv_read_file_close(csvstream_type streamdata) {
       for (size_t i = 0; i < fr->size_r; ++i) {
         if (fr->record[i] != NULL) {
           ZF_LOGD("csvfilereader->record[%lu] is not null, freeing.",
-                  (long unsigned int)i);
+                  (long unsigned)i);
           free(fr->record[i]);
         }
       }
@@ -972,8 +962,7 @@ csvreader _csvreader_init(csvdialect dialect) {
   if (dialect == NULL) {
     ZF_LOGD("dialect supplied was NULL, initializing default dialect");
     reader->dialect = csvdialect_init();
-  }
-  else {
+  } else {
     ZF_LOGD("dialect supplied was NOT NULL, deep copying dialect");
     reader->dialect = csvdialect_copy(dialect);
   }
@@ -1001,8 +990,7 @@ inline bool parse_start_record(csvreader                reader,
 
     /* indicates empty record */
     return false;
-  }
-  else if ((value == '\n') || (value == '\r')) {
+  } else if ((value == '\n') || (value == '\r')) {
     ZF_LOGD("\\r or \\n encountered at beginning of record, discarding");
     reader->parser_state = EAT_CRNL;
     ZF_LOGD("setting parser state to EAT_CRNL");
@@ -1026,31 +1014,26 @@ inline void parse_start_field(csvreader                reader,
     if (value == '\0') {
       reader->parser_state = START_RECORD;
       ZF_LOGD("setting parser state to START_RECORD");
-    }
-    else {
+    } else {
       reader->parser_state = EAT_CRNL;
       ZF_LOGD("setting parser state to EAT_CRNL");
     }
-  }
-  else if ((value == csvdialect_get_quotechar(reader->dialect)) &&
-           (QUOTE_STYLE_NONE == csvdialect_get_quotestyle(reader->dialect))) {
+  } else if ((value == csvdialect_get_quotechar(reader->dialect)) &&
+             (QUOTE_STYLE_NONE == csvdialect_get_quotestyle(reader->dialect))) {
     reader->parser_state = IN_QUOTED_FIELD;
     ZF_LOGD("setting parser state to IN_QUOTED_FIELD");
-  }
-  else if (value == csvdialect_get_escapechar(reader->dialect)) {
+  } else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPED_CHAR;
     ZF_LOGD("setting parser state to ESCAPED_CHAR");
-  }
-  else if ((value == ' ') && csvdialect_get_skipinitialspace(reader->dialect)) {
+  } else if ((value == ' ') &&
+             csvdialect_get_skipinitialspace(reader->dialect)) {
     // no change
     return;
-  }
-  else if (value == csvdialect_get_delimiter(reader->dialect)) {
+  } else if (value == csvdialect_get_delimiter(reader->dialect)) {
     /* end of field, so therefore empty/null field */
     ZF_LOGD("encountered delimiter, saving field - no change in parser state");
     (*reader->savefield)(reader->streamdata);
-  }
-  else {
+  } else {
     (*reader->appendchar)(reader->streamdata, value);
     reader->parser_state = IN_FIELD;
     ZF_LOGD("appending character to field");
@@ -1076,8 +1059,7 @@ inline void parse_escaped_char(csvreader                reader,
   ZF_LOGD("setting parser state to IN_FIELD");
 }
 
-inline void parse_in_field(csvreader                reader,
-                           csv_comparison_char_type value) {
+inline void parse_in_field(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   /* in unquoted field */
@@ -1087,22 +1069,18 @@ inline void parse_in_field(csvreader                reader,
     if (value == '\0') {
       reader->parser_state = START_RECORD;
       ZF_LOGD("setting parser state to START_RECORD");
-    }
-    else {
+    } else {
       reader->parser_state = EAT_CRNL;
       ZF_LOGD("setting parser state to EAT_CRNL");
     }
-  }
-  else if (value == csvdialect_get_escapechar(reader->dialect)) {
+  } else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPED_CHAR;
     ZF_LOGD("setting parser state to ESCAPED_CHAR");
-  }
-  else if (value == csvdialect_get_delimiter(reader->dialect)) {
+  } else if (value == csvdialect_get_delimiter(reader->dialect)) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = START_FIELD;
     ZF_LOGD("setting parser state to START_FIELD");
-  }
-  else {
+  } else {
     (*reader->appendchar)(reader->streamdata, value);
   }
 }
@@ -1111,23 +1089,20 @@ inline void parse_in_quoted_field(csvreader                reader,
                                   csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
-  if (value == '\0') { /* no-op */ }
-  else if (value == csvdialect_get_escapechar(reader->dialect)) {
+  if (value == '\0') { /* no-op */
+  } else if (value == csvdialect_get_escapechar(reader->dialect)) {
     reader->parser_state = ESCAPE_IN_QUOTED_FIELD;
     ZF_LOGD("setting parser state to ESCAPE_IN_QUOTED_FIELD");
-  }
-  else if ((value == csvdialect_get_quotechar(reader->dialect)) &&
-           (QUOTE_STYLE_NONE != csvdialect_get_quotestyle(reader->dialect))) {
+  } else if ((value == csvdialect_get_quotechar(reader->dialect)) &&
+             (QUOTE_STYLE_NONE != csvdialect_get_quotestyle(reader->dialect))) {
     if (csvdialect_get_doublequote(reader->dialect)) {
       reader->parser_state = ESCAPE_IN_QUOTED_FIELD;
       ZF_LOGD("setting parser state to ESCAPE_IN_QUOTED_FIELD");
-    }
-    else {
+    } else {
       reader->parser_state = IN_FIELD;
       ZF_LOGD("setting parser state to IN_FIELD");
     }
-  }
-  else {
+  } else {
     (*reader->appendchar)(reader->streamdata, value);
   }
 }
@@ -1142,13 +1117,11 @@ inline void parse_quote_in_quoted_field(csvreader                reader,
     (*reader->appendchar)(reader->streamdata, value);
     reader->parser_state = IN_QUOTED_FIELD;
     ZF_LOGD("setting parser state to IN_QUOTED_FIELD");
-  }
-  else if (value == csvdialect_get_delimiter(reader->dialect)) {
+  } else if (value == csvdialect_get_delimiter(reader->dialect)) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = START_FIELD;
     ZF_LOGD("setting parser state to START_FIELD");
-  }
-  else if ((value == '\0') || (value == '\r') || (value == '\n')) {
+  } else if ((value == '\0') || (value == '\r') || (value == '\n')) {
     (*reader->savefield)(reader->streamdata);
     reader->parser_state = START_FIELD;
     ZF_LOGD("setting parser state to START_FIELD");
@@ -1159,68 +1132,61 @@ inline void parse_quote_in_quoted_field(csvreader                reader,
     if (value == '\0') {
       reader->parser_state = START_RECORD;
       ZF_LOGD("setting parser state to START_RECORD");
-    }
-    else {
+    } else {
       reader->parser_state = EAT_CRNL;
       ZF_LOGD("setting parser state to EAT_CRNL");
     }
   }
 }
 
-inline void parse_value(csvreader                reader,
-                        csv_comparison_char_type value) {
+inline void parse_value(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   switch (reader->parser_state) {
-  case START_RECORD:
+    case START_RECORD:
 
-    if (!parse_start_record(reader, value)) break;
+      if (!parse_start_record(reader, value)) break;
 
-  /* else, fall through */
+      /* else, fall through */
 
-  case START_FIELD:
-    parse_start_field(reader, value);
-    break;
+    case START_FIELD: parse_start_field(reader, value); break;
 
-  case ESCAPED_CHAR:
-    parse_escaped_char(reader, value);
-    break;
+    case ESCAPED_CHAR: parse_escaped_char(reader, value); break;
 
-  case AFTER_ESCAPED_CRNL:
+    case AFTER_ESCAPED_CRNL:
 
-    if (value == '\0') break;
+      if (value == '\0') break;
 
-  /* else, fallthrough */
+      /* else, fallthrough */
 
-  case IN_FIELD:
-    parse_in_field(reader, value);
-    break;
+    case IN_FIELD: parse_in_field(reader, value); break;
 
-  case IN_QUOTED_FIELD:
+    case IN_QUOTED_FIELD:
 
-    /* in a quoted field */
-    parse_in_quoted_field(reader, value);
-    break;
+      /* in a quoted field */
+      parse_in_quoted_field(reader, value);
+      break;
 
-  case ESCAPE_IN_QUOTED_FIELD:
+    case ESCAPE_IN_QUOTED_FIELD:
 
-    if (value == '\0') value = '\n';
-    (*reader->appendchar)(reader->streamdata, value);
-    reader->parser_state = IN_QUOTED_FIELD;
-    break;
+      if (value == '\0') value = '\n';
+      (*reader->appendchar)(reader->streamdata, value);
+      reader->parser_state = IN_QUOTED_FIELD;
+      break;
 
-  case QUOTE_IN_QUOTED_FIELD:
-    parse_quote_in_quoted_field(reader, value);
-    break;
+    case QUOTE_IN_QUOTED_FIELD:
+      parse_quote_in_quoted_field(reader, value);
+      break;
 
-  case EAT_CRNL:
+    case EAT_CRNL:
 
-    if (value != '\0') {
-      reader->parser_state = START_RECORD;
-    }
-    break;
-
-  default:
-    break;
+      if (value != '\0') {
+        reader->parser_state = START_RECORD;
+      }
+      break;
   }
 }
+
+/**
+ * @endcond
+ */

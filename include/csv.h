@@ -12,8 +12,8 @@
 #define CSV_H_
 
 /* library-wide definitions, version information, return codes, etc. */
-#include "csv/version.h"
 #include "csv/definitions.h"
+#include "csv/version.h"
 
 /* I/O stream API */
 #include "csv/stream.h"

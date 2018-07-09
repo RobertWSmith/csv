@@ -14,11 +14,11 @@
 #include "version.h"
 
 typedef enum CSV_STREAM_SIGNAL {
-  CSV_GOOD, /**< Next value available */
-  CSV_EOF, /**< End of File */
-  CSV_EOR, /**< End of Record */
+  CSV_GOOD,         /**< Next value available */
+  CSV_EOF,          /**< End of File */
+  CSV_EOR,          /**< End of Record */
   CSV_END_OF_FIELD, /**< End of field */
-  CSV_ERROR, /**< Some IO Error encountered */
+  CSV_ERROR,        /**< Some IO Error encountered */
 } CSV_STREAM_SIGNAL;
 
 /**
@@ -99,7 +99,7 @@ typedef struct csv_return {
   uint64_t dialect_null : 1; /**< indicates a CSV Dialect was passed as
                                 null when one is required */
   uint64_t quoteescape_error : 1;
-  uint64_t delimiter_error   : 1;
+  uint64_t delimiter_error : 1;
 } csvreturn;
 
 /**
@@ -122,14 +122,14 @@ typedef struct csv_return {
  */
 inline csvreturn csvreturn_init(bool succeeded) {
   csvreturn rc = {
-    .succeeded         = succeeded,
-    .io_good           = 0,
-    .io_eof            = 0,
-    .io_error          = 0,
-    .truncated         = 0,
-    .dialect_null      = 0,
-    .quoteescape_error = 0,
-    .delimiter_error   = 0,
+      .succeeded         = succeeded,
+      .io_good           = 0,
+      .io_eof            = 0,
+      .io_error          = 0,
+      .truncated         = 0,
+      .dialect_null      = 0,
+      .quoteescape_error = 0,
+      .delimiter_error   = 0,
   };
 
   return rc;
@@ -145,9 +145,7 @@ inline csvreturn csvreturn_init(bool succeeded) {
  *
  * @see csv_failure
  */
-inline bool csv_success(csvreturn retcode) {
-  return retcode.succeeded;
-}
+inline bool csv_success(csvreturn retcode) { return retcode.succeeded; }
 
 /**
  * Validate call to CSV API failed
@@ -159,9 +157,7 @@ inline bool csv_success(csvreturn retcode) {
  *
  * @see csv_success
  */
-inline bool csv_failure(csvreturn retcode) {
-  return !retcode.succeeded;
-}
+inline bool csv_failure(csvreturn retcode) { return !retcode.succeeded; }
 
 /**
  * @brief Verify if EOF signal was returned
@@ -170,9 +166,7 @@ inline bool csv_failure(csvreturn retcode) {
  *
  * @return         boolean, true indicates EOF returned, false indicates no EOF
  */
-inline bool io_eof(csvreturn retcode) {
-  return retcode.io_eof;
-}
+inline bool io_eof(csvreturn retcode) { return retcode.io_eof; }
 
 /**
  * @brief CSV Linterminator definitions
@@ -192,43 +186,46 @@ inline bool io_eof(csvreturn retcode) {
  * assigned as the default. Finally, any other system is assumed to be a Unix
  * variant and the @c NL variant is assigned as the system default.
  */
-#define _CSV_LINETERMINATOR_CRNL_CHAR     "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_WCHAR   L"\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHARU8   "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHAR16  u"\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHAR32  U"\r\n"
+#define _CSV_LINETERMINATOR_CRNL_CHAR "\r\n"
+#define _CSV_LINETERMINATOR_CRNL_WCHAR L"\r\n"
+#define _CSV_LINETERMINATOR_CRNL_CHARU8 "\r\n"
+#define _CSV_LINETERMINATOR_CRNL_CHAR16 u"\r\n"
+#define _CSV_LINETERMINATOR_CRNL_CHAR32 U"\r\n"
 
-#define _CSV_LINETERMINATOR_CR_CHAR     "\r"
-#define _CSV_LINETERMINATOR_CR_WCHAR   L"\r"
-#define _CSV_LINETERMINATOR_CR_CHARU8   "\r"
-#define _CSV_LINETERMINATOR_CR_CHAR16  u"\r"
-#define _CSV_LINETERMINATOR_CR_CHAR32  U"\r"
+#define _CSV_LINETERMINATOR_CR_CHAR "\r"
+#define _CSV_LINETERMINATOR_CR_WCHAR L"\r"
+#define _CSV_LINETERMINATOR_CR_CHARU8 "\r"
+#define _CSV_LINETERMINATOR_CR_CHAR16 u"\r"
+#define _CSV_LINETERMINATOR_CR_CHAR32 U"\r"
 
-#define _CSV_LINETERMINATOR_NL_CHAR     "\n"
-#define _CSV_LINETERMINATOR_NL_WCHAR   L"\n"
-#define _CSV_LINETERMINATOR_NL_CHARU8   "\n"
-#define _CSV_LINETERMINATOR_NL_CHAR16  u"\n"
-#define _CSV_LINETERMINATOR_NL_CHAR32  U"\n"
+#define _CSV_LINETERMINATOR_NL_CHAR "\n"
+#define _CSV_LINETERMINATOR_NL_WCHAR L"\n"
+#define _CSV_LINETERMINATOR_NL_CHARU8 "\n"
+#define _CSV_LINETERMINATOR_NL_CHAR16 u"\n"
+#define _CSV_LINETERMINATOR_NL_CHAR32 U"\n"
 
 /* borrowed from https://stackoverflow.com/a/6864861/2788895 */
 #if defined(_WIN32) || defined(_WIN64) /* begin os detection */
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR   _CSV_LINETERMINATOR_CRNL_CHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR  _CSV_LINETERMINATOR_CRNL_WCHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_CRNL_CHARU8
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_CRNL_CHAR16
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_CRNL_CHAR32
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR _CSV_LINETERMINATOR_CRNL_CHAR
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR _CSV_LINETERMINATOR_CRNL_WCHAR
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 \
+  _CSV_LINETERMINATOR_CRNL_CHARU8
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 \
+  _CSV_LINETERMINATOR_CRNL_CHAR16
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 \
+  _CSV_LINETERMINATOR_CRNL_CHAR32
 #elif defined(macintosh) /* OS 9 - very old */
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR   _CSV_LINETERMINATOR_CR_CHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR  _CSV_LINETERMINATOR_CR_WCHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_CR_CHARU8
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_CR_CHAR16
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_CR_CHAR32
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR _CSV_LINETERMINATOR_CR_CHAR
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR _CSV_LINETERMINATOR_CR_WCHAR
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_CR_CHARU8
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_CR_CHAR16
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_CR_CHAR32
 #else /* *nix case */
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR   _CSV_LINETERMINATOR_NL_CHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR  _CSV_LINETERMINATOR_NL_WCHAR
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_NL_CHARU8
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_NL_CHAR16
-# define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_NL_CHAR32
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR _CSV_LINETERMINATOR_NL_CHAR
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR _CSV_LINETERMINATOR_NL_WCHAR
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_NL_CHARU8
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_NL_CHAR16
+#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_NL_CHAR32
 #endif /* end os detection */
 
 #endif /* CSV_DEFINITIONS_H_ */

@@ -8,11 +8,11 @@
 #ifndef CSV_DIALECT_H_
 #define CSV_DIALECT_H_
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
-#include "version.h"
 #include "definitions.h"
+#include "version.h"
 
 /**
  * @brief CSV Quoting Style
@@ -63,90 +63,69 @@ typedef enum CSV_LINETERMINATOR_TYPE {
  * @return                opaque pointer to a string, castable to the type
  *                        requested by @p char_type
  */
-inline const void* csv_lineterminator_type(
-  CSV_LINETERMINATOR_TYPE lineterminator,
-  CSV_CHAR_TYPE           char_type) {
+inline const void *csv_lineterminator_type(
+    CSV_LINETERMINATOR_TYPE lineterminator, CSV_CHAR_TYPE char_type) {
   switch (lineterminator) {
-  case LINETERMINATOR_CRNL:
+    case LINETERMINATOR_CRNL:
 
-    switch (char_type) {
-    case CSV_WCHAR:
-      return _CSV_LINETERMINATOR_CRNL_WCHAR;
+      switch (char_type) {
+        case CSV_WCHAR: return _CSV_LINETERMINATOR_CRNL_WCHAR;
 
-    case CSV_UCHAR8:
-      return _CSV_LINETERMINATOR_CRNL_CHARU8;
+        case CSV_UCHAR8: return _CSV_LINETERMINATOR_CRNL_CHARU8;
 
-    case CSV_UCHAR16:
-      return _CSV_LINETERMINATOR_CRNL_CHAR16;
+        case CSV_UCHAR16: return _CSV_LINETERMINATOR_CRNL_CHAR16;
 
-    case CSV_UCHAR32:
-      return _CSV_LINETERMINATOR_CRNL_CHAR32;
+        case CSV_UCHAR32: return _CSV_LINETERMINATOR_CRNL_CHAR32;
 
-    case CSV_CHAR:
+        case CSV_CHAR:
+        default: return _CSV_LINETERMINATOR_CRNL_CHAR;
+      }
+
+    case LINETERMINATOR_CR:
+
+      switch (char_type) {
+        case CSV_WCHAR: return _CSV_LINETERMINATOR_CR_WCHAR;
+
+        case CSV_UCHAR8: return _CSV_LINETERMINATOR_CR_CHARU8;
+
+        case CSV_UCHAR16: return _CSV_LINETERMINATOR_CR_CHAR16;
+
+        case CSV_UCHAR32: return _CSV_LINETERMINATOR_CR_CHAR32;
+
+        case CSV_CHAR:
+        default: return _CSV_LINETERMINATOR_CR_CHAR;
+      }
+
+    case LINETERMINATOR_NL:
+
+      switch (char_type) {
+        case CSV_WCHAR: return _CSV_LINETERMINATOR_NL_WCHAR;
+
+        case CSV_UCHAR8: return _CSV_LINETERMINATOR_NL_CHARU8;
+
+        case CSV_UCHAR16: return _CSV_LINETERMINATOR_NL_CHAR16;
+
+        case CSV_UCHAR32: return _CSV_LINETERMINATOR_NL_CHAR32;
+
+        case CSV_CHAR:
+        default: return _CSV_LINETERMINATOR_NL_CHAR;
+      }
+
+    case LINETERMINATOR_SYSTEM_DEFAULT:
     default:
-      return _CSV_LINETERMINATOR_CRNL_CHAR;
-    }
 
-  case LINETERMINATOR_CR:
+      switch (char_type) {
+        case CSV_WCHAR: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR;
 
-    switch (char_type) {
-    case CSV_WCHAR:
-      return _CSV_LINETERMINATOR_CR_WCHAR;
+        case CSV_UCHAR8: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8;
 
-    case CSV_UCHAR8:
-      return _CSV_LINETERMINATOR_CR_CHARU8;
+        case CSV_UCHAR16: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16;
 
-    case CSV_UCHAR16:
-      return _CSV_LINETERMINATOR_CR_CHAR16;
+        case CSV_UCHAR32: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32;
 
-    case CSV_UCHAR32:
-      return _CSV_LINETERMINATOR_CR_CHAR32;
-
-    case CSV_CHAR:
-    default:
-      return _CSV_LINETERMINATOR_CR_CHAR;
-    }
-
-  case LINETERMINATOR_NL:
-
-    switch (char_type) {
-    case CSV_WCHAR:
-      return _CSV_LINETERMINATOR_NL_WCHAR;
-
-    case CSV_UCHAR8:
-      return _CSV_LINETERMINATOR_NL_CHARU8;
-
-    case CSV_UCHAR16:
-      return _CSV_LINETERMINATOR_NL_CHAR16;
-
-    case CSV_UCHAR32:
-      return _CSV_LINETERMINATOR_NL_CHAR32;
-
-    case CSV_CHAR:
-    default:
-      return _CSV_LINETERMINATOR_NL_CHAR;
-    }
-
-  case LINETERMINATOR_SYSTEM_DEFAULT:
-  default:
-
-    switch (char_type) {
-    case CSV_WCHAR:
-      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR;
-
-    case CSV_UCHAR8:
-      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8;
-
-    case CSV_UCHAR16:
-      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16;
-
-    case CSV_UCHAR32:
-      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32;
-
-    case CSV_CHAR:
-    default:
-      return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR;
-    }
+        case CSV_CHAR:
+        default: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR;
+      }
   }
 }
 
@@ -187,7 +166,7 @@ csvdialect csvdialect_init(void);
  *
  * @see csvdialect_init
  */
-void       csvdialect_close(csvdialect *dialect);
+void csvdialect_close(csvdialect *dialect);
 
 /**
  * @brief Set CSV Dialect delimiter character
@@ -207,8 +186,8 @@ void       csvdialect_close(csvdialect *dialect);
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn  csvdialect_set_delimiter(csvdialect               dialect,
-                                    csv_comparison_char_type delimiter);
+csvreturn csvdialect_set_delimiter(csvdialect               dialect,
+                                   csv_comparison_char_type delimiter);
 
 /**
  * @brief Set CSV Dialect quote character escape configuration
@@ -255,8 +234,7 @@ csvreturn  csvdialect_set_delimiter(csvdialect               dialect,
  * @see csvdialect_init
  * @see csvdialect_close
  */
-csvreturn csvdialect_set_doublequote(csvdialect dialect,
-                                     bool       doublequote);
+csvreturn csvdialect_set_doublequote(csvdialect dialect, bool doublequote);
 
 /**
  * @brief Set CSV Dialect escape character
@@ -353,8 +331,7 @@ csvreturn csvdialect_set_quotechar(csvdialect               dialect,
  * @see csvdialect_close
  * @see QUOTE_STYLE
  */
-csvreturn csvdialect_set_quotestyle(csvdialect  dialect,
-                                    QUOTE_STYLE quotestyle);
+csvreturn csvdialect_set_quotestyle(csvdialect dialect, QUOTE_STYLE quotestyle);
 
 /**
  * @brief Set CSV Skip Initial Space configuration
@@ -378,6 +355,5 @@ csvreturn csvdialect_set_quotestyle(csvdialect  dialect,
  */
 csvreturn csvdialect_set_skipinitialspace(csvdialect dialect,
                                           bool       skipinitialspace);
-
 
 #endif /* CSV_DIALECT_H_ */

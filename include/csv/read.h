@@ -11,10 +11,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "version.h"
 #include "definitions.h"
 #include "dialect.h"
 #include "stream.h"
+#include "version.h"
 
 /**
  * @brief CSV Reader datastructure
@@ -49,8 +49,7 @@ typedef struct csv_reader *csvreader;
  * @see csvreader_close
  * @see csvreader_next_record
  */
-csvreader csvreader_init(csvdialect  dialect,
-                         const char *filepath);
+csvreader csvreader_init(csvdialect dialect, const char *filepath);
 
 /**
  * @brief CSV Reader initializer from file object
@@ -67,8 +66,7 @@ csvreader csvreader_init(csvdialect  dialect,
  * @see csvreader_close
  * @see csvreader_next_record
  */
-csvreader csvreader_file_init(csvdialect dialect,
-                              FILE      *fileobj);
+csvreader csvreader_file_init(csvdialect dialect, FILE *fileobj);
 
 /**
  * @brief Advanced Initializer for CSV Reader
@@ -118,8 +116,7 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
  * @see csvstream_type
  * @see csvstream_close
  */
-csvreader csvreader_set_closer(csvreader       reader,
-                               csvstream_close closer);
+csvreader csvreader_set_closer(csvreader reader, csvstream_close closer);
 
 /**
  * @brief CSV Reader destructor
@@ -137,7 +134,7 @@ csvreader csvreader_set_closer(csvreader       reader,
  * @see csvreader_advanced_init
  * @see csvreader_set_closer
  */
-void      csvreader_close(csvreader *reader);
+void csvreader_close(csvreader *reader);
 
 /**
  * @brief Get next CSV Record from CSV Reader's file
@@ -150,8 +147,8 @@ void      csvreader_close(csvreader *reader);
  *                      successful
  */
 csvreturn csvreader_next_record(csvreader       reader,
-                                CSV_CHAR_TYPE  *char_type,
+                                CSV_CHAR_TYPE * char_type,
                                 csvrecord_type *record,
-                                size_t         *record_length);
+                                size_t *        record_length);
 
 #endif /* CSV_READ_H_ */

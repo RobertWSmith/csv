@@ -1,11 +1,11 @@
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifndef ZF_LOG_LEVEL
-# define ZF_LOG_LEVEL ZF_LOG_VERBOSE
+#define ZF_LOG_LEVEL ZF_LOG_VERBOSE
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
@@ -15,25 +15,19 @@
 
 FILE *_log_file;
 
-static void file_output_callback(const zf_log_message *msg, void *arg)
-{
+static void file_output_callback(const zf_log_message *msg, void *arg) {
   (void)arg;
   *msg->p = '\n';
   fwrite(msg->buf, msg->p - msg->buf + 1, 1, _log_file);
   fflush(_log_file);
 }
 
-static void file_output_close(void)
-{
-  fclose(_log_file);
-}
+static void file_output_close(void) { fclose(_log_file); }
 
-static void file_output_open(const char *const log_path)
-{
+static void file_output_open(const char *const log_path) {
   _log_file = fopen(log_path, "w");
 
-  if (!_log_file)
-  {
+  if (!_log_file) {
     ZF_LOGW("Failed to open log file %s", log_path);
     return;
   }
@@ -185,8 +179,7 @@ void test_CSVDialectSetGetEscapechar(void) {
   TEST_ASSERT_NOT_NULL(dialect);
 
   /* default is documented as `true` */
-  TEST_ASSERT_EQUAL_INT(CSV_UNDEFINED_CHAR,
-                        csvdialect_get_escapechar(dialect));
+  TEST_ASSERT_EQUAL_INT(CSV_UNDEFINED_CHAR, csvdialect_get_escapechar(dialect));
 
   TEST_ASSERT_TRUE(csv_success(csvdialect_set_escapechar(dialect, '\0')));
 
@@ -209,9 +202,8 @@ void test_CSVDialectSetGetLineterminator(void) {
 
   TEST_ASSERT_EQUAL(LINETERMINATOR_SYSTEM_DEFAULT,
                     csvdialect_get_lineterminator(dialect));
-  TEST_ASSERT_TRUE(csv_success(
-                     csvdialect_set_lineterminator(dialect,
-                                                   LINETERMINATOR_CRNL)));
+  TEST_ASSERT_TRUE(
+      csv_success(csvdialect_set_lineterminator(dialect, LINETERMINATOR_CRNL)));
   TEST_ASSERT_EQUAL(LINETERMINATOR_CRNL,
                     csvdialect_get_lineterminator(dialect));
 
@@ -254,12 +246,12 @@ void test_CSVDialectSetGetQuotestyle(void) {
   /* default is documented as QUOTE_STYLE_MINIMAL */
   TEST_ASSERT_EQUAL(QUOTE_STYLE_MINIMAL, csvdialect_get_quotestyle(dialect));
 
-  TEST_ASSERT_TRUE(csv_success(csvdialect_set_quotestyle(dialect,
-                                                         QUOTE_STYLE_NONE)));
+  TEST_ASSERT_TRUE(
+      csv_success(csvdialect_set_quotestyle(dialect, QUOTE_STYLE_NONE)));
   TEST_ASSERT_EQUAL(QUOTE_STYLE_NONE, csvdialect_get_quotestyle(dialect));
 
-  TEST_ASSERT_TRUE(csv_success(csvdialect_set_quotestyle(dialect,
-                                                         QUOTE_STYLE_ALL)));
+  TEST_ASSERT_TRUE(
+      csv_success(csvdialect_set_quotestyle(dialect, QUOTE_STYLE_ALL)));
   TEST_ASSERT_EQUAL(QUOTE_STYLE_ALL, csvdialect_get_quotestyle(dialect));
 
   csvdialect_close(&dialect);
@@ -279,8 +271,7 @@ void test_CSVDialectSetGetSkipInitialSpace(void) {
   /* default is documented as '"' (doublequote character) */
   TEST_ASSERT_EQUAL_INT(false, csvdialect_get_skipinitialspace(dialect));
 
-  TEST_ASSERT_TRUE(csv_success(csvdialect_set_skipinitialspace(dialect,
-                                                               true)));
+  TEST_ASSERT_TRUE(csv_success(csvdialect_set_skipinitialspace(dialect, true)));
 
   /* validate that after setting new value, the new value is returned */
   TEST_ASSERT_EQUAL_INT(true, csvdialect_get_skipinitialspace(dialect));
@@ -292,8 +283,7 @@ void test_CSVDialectSetGetSkipInitialSpace(void) {
 /*
  * Run the tests
  */
-int main(int    argc,
-         char **argv) {
+int main(int argc, char **argv) {
   int output = 0;
 
   file_output_open("test_dialect.log");

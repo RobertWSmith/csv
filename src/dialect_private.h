@@ -1,4 +1,5 @@
 /**
+ * @cond INTERNAL
  * @file dialect_private.h
  * @author Robert Smith
  * @date 2018-06-18
@@ -7,8 +8,8 @@
 #ifndef CSV_DIALECT_PRIVATE_H_
 #define CSV_DIALECT_PRIVATE_H_
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "csv/dialect.h"
 
@@ -25,7 +26,6 @@
  */
 csvdialect csvdialect_copy(csvdialect dialect);
 
-
 /**
  * @brief Ensure CSV Dialect is in a valid state
  *
@@ -35,7 +35,6 @@ csvdialect csvdialect_copy(csvdialect dialect);
  *                      successful
  */
 csvreturn csvdialect_validate(csvdialect dialect);
-
 
 /**
  * @brief Get CSV Dialect delimiter
@@ -58,12 +57,12 @@ csv_comparison_char_type csvdialect_get_delimiter(csvdialect dialect);
  *
  * @see csvdialect_set_doublequote
  */
-bool                     csvdialect_get_doublequote(csvdialect dialect);
+bool csvdialect_get_doublequote(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Escape character
  *
- * @param  dialect[in]  CSV Dialect type
+ * @param[in] dialect  CSV Dialect type
  *
  * @return              escape character
  *
@@ -80,7 +79,7 @@ csv_comparison_char_type csvdialect_get_escapechar(csvdialect dialect);
  *
  * @see csvdialect_set_lineterminator
  */
-CSV_LINETERMINATOR_TYPE  csvdialect_get_lineterminator(csvdialect dialect);
+CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Quoting Character
@@ -102,7 +101,7 @@ csv_comparison_char_type csvdialect_get_quotechar(csvdialect dialect);
  *
  * @see csvdialect_set_quotestyle
  */
-QUOTE_STYLE              csvdialect_get_quotestyle(csvdialect dialect);
+QUOTE_STYLE csvdialect_get_quotestyle(csvdialect dialect);
 
 /**
  * @brief Get CSV Dialect Skip Initial Space configuration
@@ -113,6 +112,10 @@ QUOTE_STYLE              csvdialect_get_quotestyle(csvdialect dialect);
  *
  * @see csvdialect_set_skipinitialspace
  */
-bool                     csvdialect_get_skipinitialspace(csvdialect dialect);
+bool csvdialect_get_skipinitialspace(csvdialect dialect);
 
 #endif /* CSV_DIALECT_PRIVATE_H_ */
+
+/**
+ * @endcond
+ */
