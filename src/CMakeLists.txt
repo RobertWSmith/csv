@@ -1,18 +1,23 @@
 cmake_minimum_required(VERSION 3.9)
-project(csv VERSION ${csv_VERSION} LANGUAGES C)
+project(csv VERSION ${CSV_VERSION} LANGUAGES C)
 
 configure_file(
-  ${csv_PUBLIC_INCLUDE_DIR}/csv/version.h.in
-  ${csv_PUBLIC_INCLUDE_DIR}/csv/version.h
+  ${CSV_PUBLIC_INCLUDE_DIR}/csv/version.h.in
+  ${CSV_PUBLIC_INCLUDE_DIR}/csv/version.h
 )
 
-add_library(csv csv_dialect.c csv_read.c csv_write.c)
+set(CSV_SOURCES
+  csv_dialect.c
+  csv_read.c
+  csv_write.c
+  CACHE FILEPATH "CSV Library source files" FORCE)
+
+add_library(csv ${CSV_SOURCES})
 
 target_link_libraries(csv PUBLIC zf_log)
-
 target_compile_features(csv PUBLIC c_std_11)
 
-set(csv_PUBLIC_HEADER_FILES
+set(CSV_PUBLIC_HEADER_FILES
   csv.h
   csv/definitions.h
   csv/dialect.h
@@ -20,38 +25,39 @@ set(csv_PUBLIC_HEADER_FILES
   csv/stream.h
   csv/version.h
   csv/write.h
-  CACHE FILEPATH "" FORCE)
+CACHE FILEPATH "CSV Library public header files" FORCE)
 
-set(csv_PRIVATE_HEADER_FILES
+set(CSV_PRIVATE_HEADER_FILES
   dialect_private.h
-  CACHE FILEPATH "" FORCE)
+  CACHE FILEPATH "CSV Library private header files" FORCE)
 
 set_target_properties(csv PROPERTIES
-    PUBLIC_HEADER
-      "${csv_PUBLIC_HEADER_FILES}"
-    PRIVATE_HEADER
-      "${csv_PRIVATE_HEADER_FILES}"
-)
+    PUBLIC_HEADER  ${CSV_PUBLIC_HEADER_FILES}
+    PRIVATE_HEADER ${CSV_PRIVATE_HEADER_FILES})
 
 target_include_directories(csv
   PUBLIC
-    $<BUILD_INTERFACE:${csv_PUBLIC_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${CSV_PROJECT_ROOT_DIR}/include>
     $<INSTALL_INTERFACE:include>
   PRIVATE
-    $<BUILD_INTERFACE:${csv_PRIVATE_INCLUDE_DIR}>
-)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-target_compile_options(csv
-  PUBLIC
-    $<IF:$<CONFIG:Release>,-O2,-Og>;-Wall;-Wextra;-Wpointer-arith;-Wcast-align;
-      -Wwrite-strings;-Wunreachable-code;-Winit-self;
-      -Wmissing-field-initializers;-Wno-unknown-pragmas;-Wstrict-prototypes;
-      -Wundef;-Wold-style-definition
-)
+# CONFIG <= "Debug" "Release" "MinSizeRel" "RelWithDebInfo"
+# optimization level
 
-if (MINGW)
-  target_compile_definitions(csv PUBLIC __USE_MINGW_ANSI_STDIO=1)
-endif()
+# target_compile_options(csv
+#   PUBLIC -Wall
+#   PUBLIC $<$<BOOL:BUILD_VERBOSE>:-v>
+#   PUBLIC $<$<CONFIG:Debug>:-g>
+#   PUBLIC $<$<CONFIG:RelWithDebInfo>:-Og>
+#   PUBLIC $<$<CONFIG:Release>:-O2>
+#   PUBLIC $<$<CONFIG:MinSizeRel>:-Os>
+# )
+#
+# target_compile_definitions(csv
+#   PUBLIC $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:NDEBUG>
+#   PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>
+# )
 
 install(
   TARGETS csv

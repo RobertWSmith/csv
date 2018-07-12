@@ -62,8 +62,8 @@ void test_CSVWriterTwoLines(void) {
 
   TEST_ASSERT_NOT_NULL(writer);
 
-  char **record = NULL;
-  record        = malloc(sizeof *record * 3);
+  const char **record = NULL;
+  record              = malloc(sizeof *record * 3);
   TEST_ASSERT_NOT_NULL(record);
   record[0] = "field_0";
   record[1] = "field_1";

@@ -1,50 +1,37 @@
 cmake_minimum_required(VERSION 3.9)
 
-set(csv_VERSION_MAJOR 0)
-set(csv_VERSION_MINOR 0)
-set(csv_VERSION_PATCH 0)
-set(csv_VERSION_TWEAK 0)
-set(csv_VERSION "${csv_VERSION_MAJOR}.${csv_VERSION_MINOR}.${csv_VERSION_PATCH}")
-
-project(csv_root VERSION ${csv_VERSION} LANGUAGES C)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE PATH "" FORCE)
-
-##### Begin Build Variables
-option( BUILD_TESTING
-        "Flag which controls CTest execution for the CSV Unit Tests"
-        ON)
-
-if(WIN32)
-  # for some reason, after building on windows executables can't find the
-  # linked library.
-  set(BUILD_SHARED_LIBS OFF)
-else()
-  set(BUILD_SHARED_LIBS ON)
-endif()
-
-option( BUILD_SHARED_LIBS
-        "Should a shared (ON) or static (OFF) library be built?"
-        ${BUILD_SHARED_LIBS})
-
-##### End Build Variables
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE PATH "CSV Project CMake Modules" FORCE)
 
 include(GNUInstallDirs)
 
-# check for default install prefix, or assign build directory if undefined
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "" FORCE)
-  message("No default install directory defied, using default of: `${CMAKE_INSTALL_PREFIX}`")
-endif()
+include(BuildType)
+include(CSVVersion)
+include(CSVConfig)
 
-set(csv_PROJECT_ROOT_DIR    ${CMAKE_CURRENT_SOURCE_DIR}     CACHE PATH "" FORCE)
-set(csv_PUBLIC_INCLUDE_DIR  ${csv_PROJECT_ROOT_DIR}/include CACHE PATH "" FORCE)
-set(csv_PRIVATE_INCLUDE_DIR ${csv_PROJECT_ROOT_DIR}/src     CACHE PATH "" FORCE)
+project(csv_root VERSION ${CSV_VERSION} LANGUAGES C)
+
+##### Begin Build Variables
+option(BUILD_VERBOSE     "Flag which determines if the compiler should run in verbose mode" OFF)
+option(BUILD_TESTING     "Flag which controls CTest execution for the CSV Unit Tests"       ON)
+option(BUILD_SHARED_LIBS "Should a shared (ON) or static (OFF) library be built?"           ${default_build_shared_libs})
+
+##### End Build Variables
+set(CSV_PROJECT_ROOT_DIR    ${CMAKE_CURRENT_SOURCE_DIR}     CACHE PATH "CSV Project root directory"           FORCE)
+set(CSV_PUBLIC_INCLUDE_DIR  ${CSV_PROJECT_ROOT_DIR}/include CACHE PATH "CSV Project public header directory"  FORCE)
+set(CSV_PRIVATE_INCLUDE_DIR ${CSV_PROJECT_ROOT_DIR}/src     CACHE PATH "CSV Project private header directory" FORCE)
 
 add_subdirectory(external)
 add_subdirectory(src)
-add_subdirectory(tests)
+
+if(BUILD_TESTING)
+  set(CTEST_PROJECT_NAME "CSV_Library")
+  set(CTEST_BUILD_NAME "CSV_Library-${CSV_VERSION}")
+
+  include(CTest)
+
+  enable_testing()
+  add_subdirectory(tests)
+endif(BUILD_TESTING)
 
 # copy the compile commands for clang to the source root
 configure_file(
