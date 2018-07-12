@@ -45,88 +45,21 @@ typedef enum QUOTE_STYLE {
 } QUOTE_STYLE;
 
 /**
- * @brief CSV Line Terminator Type
- */
-typedef enum CSV_LINETERMINATOR_TYPE {
-  LINETERMINATOR_SYSTEM_DEFAULT = 0,
-  LINETERMINATOR_CRNL,
-  LINETERMINATOR_CR,
-  LINETERMINATOR_NL
-} CSV_LINETERMINATOR_TYPE;
-
-/**
- * @brief Convert the Lineterminator value to a useable string
+ * @brief CSV Quoting Style enumeration string representation
  *
- * @param  lineterminator current lineterminator configuration
- * @param  char_type      current char width configuration
+ * Primarily used for logging.
  *
- * @return                opaque pointer to a string, castable to the type
- *                        requested by @p char_type
+ * @param  state Current CSV Parser Stat
+ *
+ * @return       string representation of current CSV Parser State
  */
-inline const void *csv_lineterminator_type(
-    CSV_LINETERMINATOR_TYPE lineterminator, CSV_CHAR_TYPE char_type) {
-  switch (lineterminator) {
-    case LINETERMINATOR_CRNL:
-
-      switch (char_type) {
-        case CSV_WCHAR: return _CSV_LINETERMINATOR_CRNL_WCHAR;
-
-        case CSV_UCHAR8: return _CSV_LINETERMINATOR_CRNL_CHARU8;
-
-        case CSV_UCHAR16: return _CSV_LINETERMINATOR_CRNL_CHAR16;
-
-        case CSV_UCHAR32: return _CSV_LINETERMINATOR_CRNL_CHAR32;
-
-        case CSV_CHAR:
-        default: return _CSV_LINETERMINATOR_CRNL_CHAR;
-      }
-
-    case LINETERMINATOR_CR:
-
-      switch (char_type) {
-        case CSV_WCHAR: return _CSV_LINETERMINATOR_CR_WCHAR;
-
-        case CSV_UCHAR8: return _CSV_LINETERMINATOR_CR_CHARU8;
-
-        case CSV_UCHAR16: return _CSV_LINETERMINATOR_CR_CHAR16;
-
-        case CSV_UCHAR32: return _CSV_LINETERMINATOR_CR_CHAR32;
-
-        case CSV_CHAR:
-        default: return _CSV_LINETERMINATOR_CR_CHAR;
-      }
-
-    case LINETERMINATOR_NL:
-
-      switch (char_type) {
-        case CSV_WCHAR: return _CSV_LINETERMINATOR_NL_WCHAR;
-
-        case CSV_UCHAR8: return _CSV_LINETERMINATOR_NL_CHARU8;
-
-        case CSV_UCHAR16: return _CSV_LINETERMINATOR_NL_CHAR16;
-
-        case CSV_UCHAR32: return _CSV_LINETERMINATOR_NL_CHAR32;
-
-        case CSV_CHAR:
-        default: return _CSV_LINETERMINATOR_NL_CHAR;
-      }
-
-    case LINETERMINATOR_SYSTEM_DEFAULT:
-    default:
-
-      switch (char_type) {
-        case CSV_WCHAR: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR;
-
-        case CSV_UCHAR8: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8;
-
-        case CSV_UCHAR16: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16;
-
-        case CSV_UCHAR32: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32;
-
-        case CSV_CHAR:
-        default: return _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR;
-      }
+static inline const char *quote_style(QUOTE_STYLE quote_style) {
+  switch (quote_style) {
+    case QUOTE_STYLE_MINIMAL: return "QUOTE_STYLE_MINIMAL";
+    case QUOTE_STYLE_NONE: return "QUOTE_STYLE_NONE";
+    case QUOTE_STYLE_ALL: return "QUOTE_STYLE_ALL";
   }
+  return "";
 }
 
 /**
@@ -283,7 +216,9 @@ csvreturn csvdialect_set_escapechar(csvdialect               dialect,
  * therefore any changes to the string will not affect the CSV dialect.
  *
  * @param[in]  dialect        CSV Dialect type
- * @param[in]  lineterminator enum constant which controls the lineterminator.
+ * @param[in]  lineterminator string representation of the line terminator
+ * @param[in]  length         length of @p lineterminator. If zero, @c strlen
+ *                            is called to determine this value.
  *
  * @return                    CSV Return type to determine if the operation was
  *                            successful
@@ -292,8 +227,9 @@ csvreturn csvdialect_set_escapechar(csvdialect               dialect,
  * @see csvdialect_close
  * @see CSV_LINETERMINATOR_MAX
  */
-csvreturn csvdialect_set_lineterminator(csvdialect              dialect,
-                                        CSV_LINETERMINATOR_TYPE lineterminator);
+csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
+                                        const char *lineterminator,
+                                        size_t      length);
 
 /**
  * @brief Set CSV Dialect Quoting Character

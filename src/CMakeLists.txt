@@ -22,9 +22,9 @@ set(csv_PUBLIC_HEADER_FILES
   csv/write.h
   CACHE FILEPATH "" FORCE)
 
-  set(csv_PRIVATE_HEADER_FILES
-    dialect_private.h
-    CACHE FILEPATH "" FORCE)
+set(csv_PRIVATE_HEADER_FILES
+  dialect_private.h
+  CACHE FILEPATH "" FORCE)
 
 set_target_properties(csv PROPERTIES
     PUBLIC_HEADER
@@ -44,10 +44,14 @@ target_include_directories(csv
 target_compile_options(csv
   PUBLIC
     $<IF:$<CONFIG:Release>,-O2,-Og>;-Wall;-Wextra;-Wpointer-arith;-Wcast-align;
-      -Wwrite-strings;-Wswitch-default;-Wunreachable-code;-Winit-self;
+      -Wwrite-strings;-Wunreachable-code;-Winit-self;
       -Wmissing-field-initializers;-Wno-unknown-pragmas;-Wstrict-prototypes;
       -Wundef;-Wold-style-definition
 )
+
+if (MINGW)
+  target_compile_definitions(csv PUBLIC __USE_MINGW_ANSI_STDIO=1)
+endif()
 
 install(
   TARGETS csv

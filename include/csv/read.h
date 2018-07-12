@@ -139,16 +139,16 @@ void csvreader_close(csvreader *reader);
 /**
  * @brief Get next CSV Record from CSV Reader's file
  *
- * @param[in]   reader  CSV Reader type
- * @param[out]  record  Reference to a CSV Record type, if @c NULL a new
- *                      @c csvreader is allocated.
+ * @param[in]   reader        CSV Reader type
+ * @param[out]  record        Reference to a CSV Record type, if @c NULL a new
+ *                            @c csvreader is allocated.
+ * @param[out]  record_length Number of fields stored in @p record
  *
- * @return              CSV Return type to determine if the operation was
- *                      successful
+ * @return                    CSV Return type to determine if the operation was
+ *                            successful
  */
-csvreturn csvreader_next_record(csvreader       reader,
-                                CSV_CHAR_TYPE * char_type,
-                                csvrecord_type *record,
-                                size_t *        record_length);
+csvreturn csvreader_next_record(csvreader reader,
+                                char ***  record,
+                                size_t *  record_length);
 
 #endif /* CSV_READ_H_ */

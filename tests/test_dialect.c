@@ -53,7 +53,9 @@ void test_CSVDialectInitDestroy(void) {
  * Validate copies of CSV Dialect are created accurately
  */
 void test_CSVDialectCopy(void) {
-  csvdialect source, destination;
+  csvdialect  source, destination;
+  size_t      lh_size, rh_size;
+  const char *lh, *rh;
 
   source = csvdialect_init();
   TEST_ASSERT_NOT_NULL(source);
@@ -76,8 +78,16 @@ void test_CSVDialectCopy(void) {
                         csvdialect_get_delimiter(destination));
   TEST_ASSERT_EQUAL_INT(csvdialect_get_doublequote(source),
                         csvdialect_get_doublequote(destination));
-  TEST_ASSERT_EQUAL(csvdialect_get_lineterminator(source),
-                    csvdialect_get_lineterminator(destination));
+
+  // lineterminator string should not be freed, as it assumed to be a string
+  // constant
+  lh_size = 0;
+  rh_size = 0;
+  lh      = csvdialect_get_lineterminator(source, &lh_size);
+  rh      = csvdialect_get_lineterminator(destination, &rh_size);
+  TEST_ASSERT_EQUAL_STRING(lh, rh);
+  TEST_ASSERT_EQUAL_UINT(lh_size, rh_size);
+
   TEST_ASSERT_EQUAL_INT(csvdialect_get_escapechar(source),
                         csvdialect_get_escapechar(destination));
   TEST_ASSERT_EQUAL_INT(csvdialect_get_quotechar(source),
@@ -196,16 +206,19 @@ void test_CSVDialectSetGetEscapechar(void) {
  */
 void test_CSVDialectSetGetLineterminator(void) {
   csvdialect dialect;
+  size_t     lt_size;
 
   dialect = csvdialect_init();
   TEST_ASSERT_NOT_NULL(dialect);
 
-  TEST_ASSERT_EQUAL(LINETERMINATOR_SYSTEM_DEFAULT,
-                    csvdialect_get_lineterminator(dialect));
+  TEST_ASSERT_NULL(csvdialect_get_lineterminator(dialect, &lt_size));
+  TEST_ASSERT_EQUAL_UINT(0U, lt_size);
+
   TEST_ASSERT_TRUE(
-      csv_success(csvdialect_set_lineterminator(dialect, LINETERMINATOR_CRNL)));
-  TEST_ASSERT_EQUAL(LINETERMINATOR_CRNL,
-                    csvdialect_get_lineterminator(dialect));
+      csv_success(csvdialect_set_lineterminator(dialect, "\r\n", 0)));
+  TEST_ASSERT_EQUAL_STRING("\r\n",
+                           csvdialect_get_lineterminator(dialect, &lt_size));
+  TEST_ASSERT_EQUAL_UINT(2U, lt_size);
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
@@ -282,8 +295,10 @@ void test_CSVDialectSetGetSkipInitialSpace(void) {
 
 /*
  * Run the tests
+ *
+ * int main(int argc, char **argv) {
  */
-int main(int argc, char **argv) {
+int main(void) {
   int output = 0;
 
   file_output_open("test_dialect.log");

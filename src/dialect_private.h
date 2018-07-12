@@ -74,12 +74,13 @@ csv_comparison_char_type csvdialect_get_escapechar(csvdialect dialect);
  * @brief Get CSV Dialect Line Terminator string
  *
  * @param[in]   dialect CSV Dialect type
+ * @param[out]  length  length of returned string
  *
  * @return              CSV Lineterminator string
  *
  * @see csvdialect_set_lineterminator
  */
-CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect);
+const char* csvdialect_get_lineterminator(csvdialect dialect, size_t* length);
 
 /**
  * @brief Get CSV Dialect Quoting Character

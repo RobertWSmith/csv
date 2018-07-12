@@ -25,6 +25,10 @@ if(BUILD_TESTING)
       target_include_directories(${targetname} PUBLIC ${csv_PRIVATE_INCLUDE_DIR})
     endif()
 
+    if (MINGW)
+      target_compile_definitions(${targetname} PUBLIC __USE_MINGW_ANSI_STDIO=1)
+    endif()
+
     add_test(${targetname} ${csv_TEST_DIR}/${targetname})
     set_tests_properties(${targetname} PROPERTIES
       WORKING_DIRECTORY ${csv_WORKING_DIR}

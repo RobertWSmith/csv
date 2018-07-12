@@ -119,17 +119,14 @@ void csvwriter_close(csvwriter *writer);
  * @brief Set next CSV Record to CSV Writer's file
  *
  * @param[in]   writer        CSV Writer type
- * @param[in]   char_type     Type of character as each element of the record
- *                            array
  * @param[in]   record        CSV Record type
  * @param[in]   record_length Number of fields stored in @p record
  *
  * @return                    CSV Return type to determine if the operation was
  *                            successful
  */
-csvreturn csvwriter_next_record(csvwriter            writer,
-                                CSV_CHAR_TYPE        char_type,
-                                const csvrecord_type record,
-                                size_t               record_length);
+csvreturn csvwriter_next_record(csvwriter    writer,
+                                const char **record,
+                                size_t       record_length);
 
 #endif /* CSV_WRITE_H_ */

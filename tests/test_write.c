@@ -62,21 +62,21 @@ void test_CSVWriterTwoLines(void) {
 
   TEST_ASSERT_NOT_NULL(writer);
 
-  const char **record = NULL;
-  record              = malloc(sizeof *record * 3);
+  char **record = NULL;
+  record        = malloc(sizeof *record * 3);
   TEST_ASSERT_NOT_NULL(record);
   record[0] = "field_0";
   record[1] = "field_1";
   record[2] = "field_2";
 
-  rc = csvwriter_next_record(writer, CSV_CHAR, (csvrecord_type)record, 3);
+  rc = csvwriter_next_record(writer, record, 3);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   record[0] = "a";
   record[1] = "1.2";
   record[2] = "true";
 
-  rc = csvwriter_next_record(writer, CSV_CHAR, (csvrecord_type)record, 3);
+  rc = csvwriter_next_record(writer, record, 3);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   csvwriter_close(&writer);
@@ -88,7 +88,12 @@ void test_CSVWriterTwoLines(void) {
   ZF_LOGI("Ending test_CSVWriterTwoLines");
 }
 
-int main(int argc, char **argv) {
+/*
+ * Run the tests
+ *
+ * int main(int argc, char **argv) {
+ */
+int main(void) {
   int output = 0;
 
   file_output_open("test_writer.log");

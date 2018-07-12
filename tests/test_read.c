@@ -59,27 +59,18 @@ void test_CSVReaderInitDestroy(void) {
 
 void test_CSVReaderIrisDataset(void) {
   ZF_LOGI("`test_CSVReaderIrisDataset` called");
-  csvdialect    dialect       = csvdialect_init();
-  csvreader     reader        = NULL;
-  CSV_CHAR_TYPE char_type     = CSV_CHAR;
-  char **       record        = NULL;
-  size_t        record_length = 0;
-  size_t        i             = 0;  // loop counter
-  csvreturn     rc;
+  csvdialect dialect       = csvdialect_init();
+  csvreader  reader        = NULL;
+  char **    record        = NULL;
+  size_t     record_length = 0;
+  size_t     i             = 0;  // loop counter
+  csvreturn  rc;
 
-  ZF_LOGI("`csvreader_init` before");
   reader = csvreader_init(dialect, "data/iris.csv");
-  ZF_LOGI("`csvreader_init` completed");
-
   TEST_ASSERT_NOT_NULL(reader);
 
-  ZF_LOGI("record length: %lu", record_length);
-  ZF_LOGI("`csvreader_next_record` called");
-  rc = csvreader_next_record(
-      reader, &char_type, (csvrecord_type *)&record, &record_length);
-  ZF_LOGI("`csvreader_next_record` called");
-
-  // successful return
+  ZF_LOGI("record length: %zu", record_length);
+  rc = csvreader_next_record(reader, &record, &record_length);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
@@ -91,7 +82,7 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_FALSE(rc.io_error);
 
   // there are exactly 5 fields in this dataset
-  ZF_LOGI("record length: %lu", record_length);
+  ZF_LOGI("record length: %zu", record_length);
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
 
   // value equivalence for the header row
@@ -107,10 +98,7 @@ void test_CSVReaderIrisDataset(void) {
   }
   free(record);
 
-  rc = csvreader_next_record(
-      reader, &char_type, (csvrecord_type *)&record, &record_length);
-
-  // successful return
+  rc = csvreader_next_record(reader, &record, &record_length);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   // no eof indicated
@@ -132,7 +120,7 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_EQUAL_STRING("0.2", record[3]);
   TEST_ASSERT_EQUAL_STRING("setosa", record[4]);
 
-  // excellent, now must free the memory
+  // if passed - excellent, now must free the memory
   for (i = 0; i < record_length; ++i) {
     free(record[i]);
   }
@@ -142,8 +130,7 @@ void test_CSVReaderIrisDataset(void) {
 
   while (true) {
     ZF_LOGI("Row #%d", ++cnt);
-    rc = csvreader_next_record(
-        reader, &char_type, (csvrecord_type *)&record, &record_length);
+    rc = csvreader_next_record(reader, &record, &record_length);
 
     if (csv_success(rc)) {
       // there are exactly 5 fields in this dataset
@@ -159,18 +146,21 @@ void test_CSVReaderIrisDataset(void) {
     }
   }
 
-  ZF_LOGI("`csvreader_close` before");
   csvreader_close(&reader);
   TEST_ASSERT_NULL(reader);
   ZF_LOGI("`csvreader_close` completed");
 
-  ZF_LOGI("`csvdialect_close` before");
   csvdialect_close(&dialect);
   ZF_LOGI("`csvdialect_close` completed");
   ZF_LOGI("`test_CSVReaderIrisDataset` completed");
 }
 
-int main(int argc, char **argv) {
+/*
+ * Run the tests
+ *
+ * int main(int argc, char **argv) {
+ */
+int main(void) {
   int output = 0;
 
   file_output_open("test_reader.log");

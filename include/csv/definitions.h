@@ -13,6 +13,38 @@
 
 #include "version.h"
 
+/**
+ * @brief CSV Linterminator definitions
+ *
+ * Definitions which help provide lineterminators of various styles and
+ * character encodings. All begin with the style @c _CSV_LINETERMINATOR_*
+ * followed by the line terminator style, which are currently defined as
+ * @c CRNL ("\r\n"), @c CR ("\r") and @c NL ("\n"). Finally, the suffix
+ * determines the character encoding, which is currently defined as
+ * @c CHAR (@c char), @c WCHAR (@c wchar_t), @c CHARU8 (@c char, with UTF-8
+ * encoding), @c CHAR16 (@c char16_t), @c CHAR32 (@c char32_t).
+ *
+ * There is also an attempt to determine the system default line terminator,
+ * which is performed by first checking if @c _WIN32 or @c _WIN64 is defined.
+ * If so, the @c CRNL variants are defined as the default. Next, there is a
+ * check for legacy Macintosh OS 9 definitions, if so the @c CR variant is
+ * assigned as the default. Finally, any other system is assumed to be a Unix
+ * variant and the @c NL variant is assigned as the system default.
+ *
+ * Notes:
+ *    borrowed from https://stackoverflow.com/a/6864861/2788895
+ */
+#if defined(_WIN32) || defined(_WIN64) /* begin os detection */
+#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r\n"
+#elif defined(macintosh) /* OS 9 - very old */
+#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r"
+#else /* *nix case */
+#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\n"
+#endif /* end os detection */
+
+/**
+ * @brief CSV Stream Signal, controls parser behavior
+ */
 typedef enum CSV_STREAM_SIGNAL {
   CSV_GOOD,         /**< Next value available */
   CSV_EOF,          /**< End of File */
@@ -20,6 +52,25 @@ typedef enum CSV_STREAM_SIGNAL {
   CSV_END_OF_FIELD, /**< End of field */
   CSV_ERROR,        /**< Some IO Error encountered */
 } CSV_STREAM_SIGNAL;
+
+/**
+ * @brief CSV Stream Signal enumeration string representation
+ *
+ * Primarily used for logging.
+ *
+ * @param  state Current CSV Stream Signal
+ *
+ * @return       string representation of current CSV Stream Signal
+ */
+static inline const char *stream_signal(CSV_STREAM_SIGNAL csv_stream_signal) {
+  switch (csv_stream_signal) {
+    case CSV_GOOD: return "CSV_GOOD";
+    case CSV_EOF: return "CSV_EOF";
+    case CSV_EOR: return "CSV_EOR";
+    case CSV_END_OF_FIELD: return "CSV_END_OF_FIELD";
+    case CSV_ERROR: return "CSV_ERROR";
+  }
+}
 
 /**
  * @brief Enum for callbacks to get or return when passing @c csvfield_type ot
@@ -167,65 +218,5 @@ inline bool csv_failure(csvreturn retcode) { return !retcode.succeeded; }
  * @return         boolean, true indicates EOF returned, false indicates no EOF
  */
 inline bool io_eof(csvreturn retcode) { return retcode.io_eof; }
-
-/**
- * @brief CSV Linterminator definitions
- *
- * Definitions which help provide lineterminators of various styles and
- * character encodings. All begin with the style @c _CSV_LINETERMINATOR_*
- * followed by the line terminator style, which are currently defined as
- * @c CRNL ("\r\n"), @c CR ("\r") and @c NL ("\n"). Finally, the suffix
- * determines the character encoding, which is currently defined as
- * @c CHAR (@c char), @c WCHAR (@c wchar_t), @c CHARU8 (@c char, with UTF-8
- * encoding), @c CHAR16 (@c char16_t), @c CHAR32 (@c char32_t).
- *
- * There is also an attempt to determine the system default line terminator,
- * which is performed by first checking if @c _WIN32 or @c _WIN64 is defined.
- * If so, the @c CRNL variants are defined as the default. Next, there is a
- * check for legacy Macintosh OS 9 definitions, if so the @c CR variant is
- * assigned as the default. Finally, any other system is assumed to be a Unix
- * variant and the @c NL variant is assigned as the system default.
- */
-#define _CSV_LINETERMINATOR_CRNL_CHAR "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_WCHAR L"\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHARU8 "\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHAR16 u"\r\n"
-#define _CSV_LINETERMINATOR_CRNL_CHAR32 U"\r\n"
-
-#define _CSV_LINETERMINATOR_CR_CHAR "\r"
-#define _CSV_LINETERMINATOR_CR_WCHAR L"\r"
-#define _CSV_LINETERMINATOR_CR_CHARU8 "\r"
-#define _CSV_LINETERMINATOR_CR_CHAR16 u"\r"
-#define _CSV_LINETERMINATOR_CR_CHAR32 U"\r"
-
-#define _CSV_LINETERMINATOR_NL_CHAR "\n"
-#define _CSV_LINETERMINATOR_NL_WCHAR L"\n"
-#define _CSV_LINETERMINATOR_NL_CHARU8 "\n"
-#define _CSV_LINETERMINATOR_NL_CHAR16 u"\n"
-#define _CSV_LINETERMINATOR_NL_CHAR32 U"\n"
-
-/* borrowed from https://stackoverflow.com/a/6864861/2788895 */
-#if defined(_WIN32) || defined(_WIN64) /* begin os detection */
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR _CSV_LINETERMINATOR_CRNL_CHAR
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR _CSV_LINETERMINATOR_CRNL_WCHAR
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 \
-  _CSV_LINETERMINATOR_CRNL_CHARU8
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 \
-  _CSV_LINETERMINATOR_CRNL_CHAR16
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 \
-  _CSV_LINETERMINATOR_CRNL_CHAR32
-#elif defined(macintosh) /* OS 9 - very old */
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR _CSV_LINETERMINATOR_CR_CHAR
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR _CSV_LINETERMINATOR_CR_WCHAR
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_CR_CHARU8
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_CR_CHAR16
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_CR_CHAR32
-#else /* *nix case */
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR _CSV_LINETERMINATOR_NL_CHAR
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_WCHAR _CSV_LINETERMINATOR_NL_WCHAR
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHARU8 _CSV_LINETERMINATOR_NL_CHARU8
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR16 _CSV_LINETERMINATOR_NL_CHAR16
-#define _CSV_LINETERMINATOR_SYSTEM_DEFAULT_CHAR32 _CSV_LINETERMINATOR_NL_CHAR32
-#endif /* end os detection */
 
 #endif /* CSV_DEFINITIONS_H_ */

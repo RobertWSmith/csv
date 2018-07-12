@@ -1,3 +1,20 @@
+/**
+ * @cond INTERNAL
+ *
+ * @file csv_dialect.c
+ * @author Robert W. Smith
+ * @date 2018-06-27
+ * @brief Implementation of CSV Dialect object
+ *
+ * Private documentation, API subject to change.
+ *
+ * @see csv/definitions.h
+ * @see csv/write.h
+ * @see csv/stream.h
+ * @see csv/read.h
+ * @see csv/version.h
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,158 +32,218 @@
 #include "dialect_private.h"
 
 /*
+ * private function declarations - begin
+ */
+
+/**
+ * @brief CSV Dialect private allocator / default setup.
+ *
+ * @return  null / zero initialized CSV Dialect
+ */
+csvdialect csvdialect_alloc(void);
+
+/*
+ * private function declarations - end
+ */
+
+/*
  * @brief implementation of the @c csvdialect pointer.
  */
 struct csv_dialect {
+  const char *             lineterminator;
+  size_t                   lineterminator_length;
+  csv_comparison_char_type delimiter;
+  csv_comparison_char_type escapechar;
+  csv_comparison_char_type quotechar;
   QUOTE_STYLE              quotestyle;
-  CSV_LINETERMINATOR_TYPE  lineterminator;
-  csv_comparison_char_type delimiter, escapechar, quotechar;
-  bool                     doublequote, skipinitialspace;
+  bool                     doublequote;
+  bool                     skipinitialspace;
 };
 
-csvdialect csvdialect_init(void) {
-  csvdialect dialect = NULL;
+csvdialect csvdialect_alloc(void) {
+  csvdialect dialect;
 
   if ((dialect = malloc(sizeof *dialect)) == NULL) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    return NULL;
+  }
+
+  dialect->lineterminator        = NULL;
+  dialect->lineterminator_length = 0;
+  dialect->delimiter             = 0;
+  dialect->escapechar            = 0;
+  dialect->quotechar             = 0;
+  dialect->quotestyle            = QUOTE_STYLE_MINIMAL;
+  dialect->doublequote           = false;
+  dialect->skipinitialspace      = false;
+
+  return dialect;
+}
+
+csvdialect csvdialect_init(void) {
+  csvdialect dialect;
+
+  if ((dialect = csvdialect_alloc()) == NULL) {
+    ZF_LOGE("default initialization failure - allocation");
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_delimiter(dialect, ','))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    ZF_LOGE("default initialization failure - delimiter");
     csvdialect_close(&dialect);
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_doublequote(dialect, true))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    ZF_LOGE("default initialization failure - doublequote");
     csvdialect_close(&dialect);
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_escapechar(dialect, CSV_UNDEFINED_CHAR))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    ZF_LOGE("default initialization failure - escapechar");
     csvdialect_close(&dialect);
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_lineterminator(
-          dialect, LINETERMINATOR_SYSTEM_DEFAULT))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+          dialect, CSV_LINETERMINATOR_SYSTEM_DEFAULT, 0))) {
+    ZF_LOGE("default initialization failure - lineterminator");
     csvdialect_close(&dialect);
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_quotechar(dialect, '\"'))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    ZF_LOGE("default initialization failure - quotechar");
     csvdialect_close(&dialect);
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_quotestyle(dialect, QUOTE_STYLE_MINIMAL))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    ZF_LOGE("default initialization failure - quotestyle");
     csvdialect_close(&dialect);
     return NULL;
   }
 
   if (csv_failure(csvdialect_set_skipinitialspace(dialect, false))) {
-    ZF_LOGD("`csvdialect` default initialization failure.");
+    ZF_LOGE("default initialization failure - skipinitialspace");
     csvdialect_close(&dialect);
     return NULL;
   }
 
-  ZF_LOGI("New dialect created at `%p`.", (void *)dialect);
+  ZF_LOGD("Dialect successfully initialized: %p", (void *)dialect);
   return dialect;
 }
 
 csvdialect csvdialect_copy(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI("NULL dialect passed to `csvdialect_copy`.");
+    ZF_LOGE("`dialect` value is NULL");
     return NULL;
   }
 
-  csvdialect output = csvdialect_init();
+  csvdialect               output;
+  csvreturn                rc;
+  size_t                   lt_length;
+  const char *             lt;
+  csv_comparison_char_type delimiter;
+  csv_comparison_char_type escapechar;
+  csv_comparison_char_type quotechar;
+  QUOTE_STYLE              quotestyle;
+  bool                     doublequote;
+  bool                     skipinitialspace;
 
-  if (csv_failure(csvdialect_set_delimiter(dialect,
-                                           csvdialect_get_delimiter(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  if ((output = csvdialect_init()) == NULL) {
+    ZF_LOGE("dialect copy failure - output allocation");
+    return NULL;
+  }
+
+  delimiter = csvdialect_get_delimiter(dialect);
+  rc        = csvdialect_set_delimiter(output, delimiter);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - delimiter");
     csvdialect_close(&output);
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_doublequote(
-          dialect, csvdialect_get_doublequote(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  doublequote = csvdialect_get_doublequote(dialect);
+  rc          = csvdialect_set_doublequote(output, doublequote);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - doublequote");
     csvdialect_close(&output);
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_escapechar(
-          dialect, csvdialect_get_escapechar(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  escapechar = csvdialect_get_escapechar(dialect);
+  rc         = csvdialect_set_escapechar(output, escapechar);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - escapechar");
     csvdialect_close(&output);
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_lineterminator(
-          dialect, csvdialect_get_lineterminator(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  lt = csvdialect_get_lineterminator(dialect, &lt_length);
+  rc = csvdialect_set_lineterminator(output, lt, lt_length);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - lineterminator");
     csvdialect_close(&output);
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_quotechar(dialect,
-                                           csvdialect_get_quotechar(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  quotechar = csvdialect_get_quotechar(dialect);
+  rc        = csvdialect_set_quotechar(output, quotechar);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - quotechar");
     csvdialect_close(&output);
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_quotestyle(
-          dialect, csvdialect_get_quotestyle(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  quotestyle = csvdialect_get_quotestyle(dialect);
+  rc         = csvdialect_set_quotestyle(output, quotestyle);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - quotestyle");
     csvdialect_close(&output);
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_skipinitialspace(
-          dialect, csvdialect_get_skipinitialspace(output)))) {
-    ZF_LOGD("`csvdialect_copy` failure.");
+  skipinitialspace = csvdialect_get_skipinitialspace(dialect);
+  rc               = csvdialect_set_skipinitialspace(output, skipinitialspace);
+  if (csv_failure(rc)) {
+    ZF_LOGE("dialect copy failure - skipinitialspace");
     csvdialect_close(&output);
     return NULL;
   }
 
+  ZF_LOGD("dialect successfully copied from source `%p` to target `%p`",
+          (void *)dialect,
+          (void *)output);
   return output;
 }
 
 void csvdialect_close(csvdialect *dialect) {
-  ZF_LOGD("`csvdialect_close` called at: `%p`.", (void *)dialect);
-  csvdialect d = *dialect;
-
-  if (d == NULL) {
-    ZF_LOGD("`csvdialect_close` called on NULL pointer.");
+  if ((*dialect) == NULL) {
+    ZF_LOGE("`dialect` value is NULL");
     return;
   }
 
-  ZF_LOGI("Attempting to free `csvdialect` at: `%p`.", (void *)d);
-  free(d);
-  ZF_LOGD("Setting `csvdialect*` to NULL at: `%p`.", (void *)dialect);
+  ZF_LOGD("freeing dialect resources: %p", (void *)(*dialect));
+  free((*dialect));
   *dialect = NULL;
 }
 
+/*
+ * TODO: update and document...
+ */
 csvreturn csvdialect_validate(csvdialect dialect) {
-  ZF_LOGD("`csvdialect_validate` called at: `%p`.", (void *)dialect);
+  ZF_LOGD("`csvdialect_validate` called at: `%p`", (void *)dialect);
   csvreturn rc = csvreturn_init(false);
 
   if (dialect == NULL) {
-    ZF_LOGI("`csvdialect_validate` identified a NULL dialect.");
+    ZF_LOGE("`csvdialect_validate` identified a NULL dialect");
     rc.dialect_null = 1;
     return rc;
   }
 
   if (csvdialect_get_delimiter(dialect) == CSV_UNDEFINED_CHAR) {
-    ZF_LOGI(
-        "`csvdialect_validate` identified a undefined delimiter character.");
+    ZF_LOGE("`csvdialect_validate` identified a undefined delimiter character");
     rc.delimiter_error = 1;
     return rc;
   }
@@ -192,15 +269,15 @@ csvreturn csvdialect_validate(csvdialect dialect) {
 
   if ((!csvdialect_get_doublequote(dialect)) &&
       (csvdialect_get_escapechar(dialect) == CSV_UNDEFINED_CHAR)) {
-    ZF_LOGI(
-        "`csvdialect_validate` identified a quoting rule in an invalid state.");
+    ZF_LOGE(
+        "`csvdialect_validate` identified a quoting rule in an invalid state");
     rc.quoteescape_error = 1;
     return rc;
   }
 
-  ZF_LOGD(
+  ZF_LOGI(
       "`csvdialect_validate` did not identify any issues with the CSV "
-      "Dialect.");
+      "Dialect");
 
   /* all checks passed, return success */
   rc.succeeded = 1;
@@ -210,177 +287,195 @@ csvreturn csvdialect_validate(csvdialect dialect) {
 csvreturn csvdialect_set_delimiter(csvdialect               dialect,
                                    csv_comparison_char_type delimiter) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_set_delimiter` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   } else if (delimiter == CSV_UNDEFINED_CHAR) {
-    ZF_LOGI("`csvdialect_set_delimiter` was an invalid delimiter character.");
+    ZF_LOGE("`delimiter` set to undefined character");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_delimiter` setting `%c`.", (char)delimiter);
+  ZF_LOGD("delimiter `%c`", (char)delimiter);
   dialect->delimiter = delimiter;
   return csvreturn_init(true);
 }
 
 csv_comparison_char_type csvdialect_get_delimiter(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_get_delimiter` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return CSV_UNDEFINED_CHAR;
   }
 
-  ZF_LOGD("`csvdialect_get_delimiter` getting `%c`.", (char)dialect->delimiter);
+  ZF_LOGD("delimiter `%c`", (char)dialect->delimiter);
   return dialect->delimiter;
 }
 
 csvreturn csvdialect_set_doublequote(csvdialect dialect, bool doublequote) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_set_doublequote` was passed NULL in the dialect "
-        "argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_doublequote` setting `%s`.",
-          doublequote ? "true" : "false");
+  ZF_LOGD("doublequote `%s`", doublequote ? "true" : "false");
   dialect->doublequote = doublequote;
   return csvreturn_init(true);
 }
 
 bool csvdialect_get_doublequote(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_get_doublequote` was passed NULL in the dialect "
-        "argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return true;
   }
 
-  ZF_LOGD("`csvdialect_get_doublequote` setting `%s`",
-          dialect->doublequote ? "true" : "false");
+  ZF_LOGD("doublequote `%s`", dialect->doublequote ? "true" : "false");
   return dialect->doublequote;
 }
 
 csvreturn csvdialect_set_escapechar(csvdialect               dialect,
                                     csv_comparison_char_type escapechar) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_set_escapechar` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_escapechar` setting `%c`.", (char)escapechar);
+  ZF_LOGD("escapechar `%c`", (char)escapechar);
   dialect->escapechar = escapechar;
   return csvreturn_init(true);
 }
 
 csv_comparison_char_type csvdialect_get_escapechar(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_get_escapechar` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return CSV_UNDEFINED_CHAR;
   }
 
-  ZF_LOGD("`csvdialect_get_escapechar` setting `%c`.",
-          (char)dialect->escapechar);
+  ZF_LOGD("escapechar `%c`", (char)dialect->escapechar);
   return dialect->escapechar;
 }
 
-csvreturn csvdialect_set_lineterminator(
-    csvdialect dialect, CSV_LINETERMINATOR_TYPE lineterminator) {
+csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
+                                        const char *lineterminator,
+                                        size_t      length) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_set_lineterminator` was passed NULL in the dialect "
-        "argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_lineterminator` setting `%d`.", lineterminator);
-  dialect->lineterminator = lineterminator;
+  ZF_LOGD("lineterminator `%s` length `%lu`",
+          (const char *)lineterminator,
+          (unsigned long)length);
+
+  if (lineterminator == NULL) {
+    dialect->lineterminator_length = 0;
+  } else if (length == 0) {
+    dialect->lineterminator_length = strlen(lineterminator);
+  } else {
+    dialect->lineterminator_length = length;
+  }
+
+  char *temp_lt = NULL;
+
+  if (dialect->lineterminator != NULL) {
+    free((void *)dialect->lineterminator);
+  }
+
+  temp_lt = calloc(dialect->lineterminator_length + 1,
+                   sizeof *dialect->lineterminator);
+  if (temp_lt == NULL) {
+    ZF_LOGE("Could not allocate space for the lineterminator");
+    return csvreturn_init(false);
+  }
+
+  strncpy(temp_lt, lineterminator, dialect->lineterminator_length);
+
+  if (dialect->lineterminator != NULL) {
+    free((void *)(dialect->lineterminator));
+  }
+
+  dialect->lineterminator = (const char *)temp_lt;
   return csvreturn_init(true);
 }
 
-CSV_LINETERMINATOR_TYPE csvdialect_get_lineterminator(csvdialect dialect) {
+const char *csvdialect_get_lineterminator(csvdialect dialect, size_t *length) {
   if (dialect == NULL) {
-    ZF_LOGI("`dialect` was passed NULL");
-    return LINETERMINATOR_SYSTEM_DEFAULT;
+    ZF_LOGE("`dialect` value is NULL");
+    *length = 0;
+    return NULL;
   }
 
-  ZF_LOGD("returning `%d`.", dialect->lineterminator);
+  ZF_LOGD("lineterminator `%s` length `%zu`",
+          dialect->lineterminator,
+          dialect->lineterminator_length);
+  *length = dialect->lineterminator_length;
   return dialect->lineterminator;
 }
 
 csvreturn csvdialect_set_quotechar(csvdialect               dialect,
                                    csv_comparison_char_type quotechar) {
   if (dialect == NULL) {
-    ZF_LOGI("`csvdialect` was passed NULL.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("returning `%c`.", (char)quotechar);
+  ZF_LOGD("quotechar `%c`", (char)quotechar);
   dialect->quotechar = quotechar;
   return csvreturn_init(true);
 }
 
 csv_comparison_char_type csvdialect_get_quotechar(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_get_quotechar` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return CSV_UNDEFINED_CHAR;
   }
 
-  ZF_LOGD("`csvdialect_get_quotechar` setting `%c`.", (char)dialect->quotechar);
+  ZF_LOGD("quotechar `%c`", (char)dialect->quotechar);
   return dialect->quotechar;
 }
 
 csvreturn csvdialect_set_quotestyle(csvdialect  dialect,
                                     QUOTE_STYLE quotestyle) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_set_quotestyle` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_quotestyle` setting `%d`.", quotestyle);
+  ZF_LOGD("quotestyle `%s`", quote_style(quotestyle));
   dialect->quotestyle = quotestyle;
   return csvreturn_init(true);
 }
 
 QUOTE_STYLE csvdialect_get_quotestyle(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_get_quotestyle` was passed NULL in the dialect argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return QUOTE_STYLE_MINIMAL;
   }
 
-  ZF_LOGD("`csvdialect_get_quotestyle` setting `%d`.", dialect->quotestyle);
+  ZF_LOGD("quotestyle `%s`", quote_style(dialect->quotestyle));
   return dialect->quotestyle;
 }
 
 csvreturn csvdialect_set_skipinitialspace(csvdialect dialect,
                                           bool       skipinitialspace) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_set_skipinitialspace` was passed NULL in the dialect "
-        "argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("`csvdialect_set_skipinitialspace` setting `%s`",
-          skipinitialspace ? "true" : "false");
+  ZF_LOGD("skipinitialspace `%s`", skipinitialspace ? "true" : "false");
   dialect->skipinitialspace = skipinitialspace;
   return csvreturn_init(true);
 }
 
 bool csvdialect_get_skipinitialspace(csvdialect dialect) {
   if (dialect == NULL) {
-    ZF_LOGI(
-        "`csvdialect_get_skipinitialspace` was passed NULL in the dialect "
-        "argument.");
+    ZF_LOGE("`dialect` value is NULL");
     return false;
   }
 
-  ZF_LOGD("`csvdialect_get_skipinitialspace` setting `%s`",
+  ZF_LOGD("skipinitialspace `%s`",
           dialect->skipinitialspace ? "true" : "false");
   return dialect->skipinitialspace;
 }
+
+/**
+ * @endcond
+ */

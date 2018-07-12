@@ -27,8 +27,6 @@ else()
   target_compile_features(unity PUBLIC c_std_11)
   target_compile_options(unity PRIVATE -Wall -Og)
 
-  include(ExternalProject)
-
   set(zf_log_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/zf_log CACHE PATH "" FORCE)
 
   execute_process(
