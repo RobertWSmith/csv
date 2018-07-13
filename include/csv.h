@@ -11,17 +11,12 @@
 #ifndef CSV_H_
 #define CSV_H_
 
-/* library-wide definitions, version information, return codes, etc. */
-#include "csv/definitions.h"
 #include "csv/version.h"
+#include "csv/definitions.h"
 
-/* I/O stream API */
+#include "csv/dialect.h"
 #include "csv/stream.h"
 
-/* configuration API for read & write */
-#include "csv/dialect.h"
-
-/* read & write API, respectively */
 #include "csv/read.h"
 #include "csv/write.h"
 

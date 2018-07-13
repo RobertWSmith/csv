@@ -8,30 +8,30 @@ set(CSV_TEST_SOURCES
   test_read.c
   test_write.c
 CACHE FILEPATH "CSV Library source files for tests" FORCE)
+
 # set(CSV_TEST_TARGETS)
 
 foreach(source ${CSV_TEST_SOURCES})
   get_filename_component(targetname ${source} NAME_WE)
   add_executable(${targetname} ${source})
-  target_link_libraries(${targetname} PUBLIC csv unity)
+  target_link_libraries(${targetname} PUBLIC unity zf_log csv)
 
+  # need private header for testing to validate getters
   if(${source} STREQUAL "test_dialect.c")
     target_include_directories(${targetname} PUBLIC ${CSV_PRIVATE_INCLUDE_DIR})
   endif()
 
+  # # cmake/ClangTidy.cmake
+  # if(CLANG_TIDY_FOUND)
+  #   set_target_properties(${targetname} PROPERTIES C_CLANG_TIDY ${DO_CLANG_TIDY})
+  # endif()
+  # PUBLIC $<$<AND:$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>,$<BOOL:BUILD_VERBOSE>>::-v>
   # target_compile_options(${targetname}
-  #   PUBLIC -Wall
-  #   PUBLIC $<$<BOOL:BUILD_VERBOSE>:-v>
-  #   PUBLIC $<$<CONFIG:Debug>:-g
-  #   PUBLIC $<$<CONFIG:RelWithDebInfo>:-Og>
-  #   PUBLIC $<$<CONFIG:Release>:-O2>
-  #   PUBLIC $<$<CONFIG:MinSizeRel>:-Os>
-  # )
+  #   PUBLIC $<$<C_COMPILER_ID:GNU>:-Wall;-Wextra;-Wshadow;-pedantic;-Wno-format>
+  #   PUBLIC $<$<C_COMPILER_ID:Clang>:-Weverything;-pedantic>
+  #   PUBLIC $<$<C_COMPILER_ID:MSVC>:/W4>)
 
-  # target_compile_definitions(${targetname}
-  #   PUBLIC $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:NDEBUG>
-  #   PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>
-  # )
+  target_compile_definitions(${targetname} PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>)
 
   add_test(${targetname} ${CSV_TEST_DIR}/${targetname})
   set_tests_properties(${targetname} PROPERTIES

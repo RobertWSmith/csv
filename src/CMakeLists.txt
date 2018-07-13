@@ -3,8 +3,7 @@ project(csv VERSION ${CSV_VERSION} LANGUAGES C)
 
 configure_file(
   ${CSV_PUBLIC_INCLUDE_DIR}/csv/version.h.in
-  ${CSV_PUBLIC_INCLUDE_DIR}/csv/version.h
-)
+  ${CSV_PUBLIC_INCLUDE_DIR}/csv/version.h)
 
 set(CSV_SOURCES
   csv_dialect.c
@@ -36,28 +35,21 @@ set_target_properties(csv PROPERTIES
     PRIVATE_HEADER ${CSV_PRIVATE_HEADER_FILES})
 
 target_include_directories(csv
-  PUBLIC
-    $<BUILD_INTERFACE:${CSV_PROJECT_ROOT_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-  PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-
-# CONFIG <= "Debug" "Release" "MinSizeRel" "RelWithDebInfo"
-# optimization level
+  PUBLIC $<BUILD_INTERFACE:${CSV_PUBLIC_INCLUDE_DIR}>
+  PUBLIC $<INSTALL_INTERFACE:include>
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # target_compile_options(csv
-#   PUBLIC -Wall
-#   PUBLIC $<$<BOOL:BUILD_VERBOSE>:-v>
-#   PUBLIC $<$<CONFIG:Debug>:-g>
-#   PUBLIC $<$<CONFIG:RelWithDebInfo>:-Og>
-#   PUBLIC $<$<CONFIG:Release>:-O2>
-#   PUBLIC $<$<CONFIG:MinSizeRel>:-Os>
-# )
-#
-# target_compile_definitions(csv
-#   PUBLIC $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>:NDEBUG>
-#   PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>
-# )
+#   PUBLIC $<$<C_COMPILER_ID:GNU>:-Wall;-Wextra;-Wshadow;-pedantic;-Wno-format>
+#   PUBLIC $<$<C_COMPILER_ID:Clang>:-Weverything;-pedantic>
+#   PUBLIC $<$<C_COMPILER_ID:MSVC>:/W4>)
+
+target_compile_definitions(csv PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>)
+
+# # cmake/ClangTidy.cmake
+# if(CLANG_TIDY_FOUND)
+#   set_target_properties(csv PROPERTIES C_CLANG_TIDY ${DO_CLANG_TIDY})
+# endif()
 
 install(
   TARGETS csv

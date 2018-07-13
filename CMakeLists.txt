@@ -5,6 +5,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE PATH "CSV Projec
 include(GNUInstallDirs)
 
 include(BuildType)
+include(ClangTidy)
+
 include(CSVVersion)
 include(CSVConfig)
 
@@ -34,8 +36,8 @@ if(BUILD_TESTING)
 endif(BUILD_TESTING)
 
 # copy the compile commands for clang to the source root
-configure_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-  ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-  COPYONLY
-)
+# configure_file(
+#   ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+#   ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+#   COPYONLY
+# )

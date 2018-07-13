@@ -1,6 +1,4 @@
--D__USE_MINGW_ANSI_STDIO=1
 -std=c11
--DDEBUG
 -Iinclude
 -Isrc
 -Iexternal/zf_log/zf_log

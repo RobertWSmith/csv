@@ -13,5 +13,5 @@ set_property(CACHE default_build_shared_libs PROPERTY HELPSTRING
 # check for default install prefix, or assign build directory if undefined
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "Install directory used by install()." FORCE)
-  message("No default install directory defined, setting to default: `${CMAKE_INSTALL_PREFIX}`")
+  message("No default install directory defined, setting default to: `${CMAKE_INSTALL_PREFIX}`")
 endif()

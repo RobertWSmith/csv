@@ -30,12 +30,7 @@
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
-// #include "csv.h"
-#include "csv/definitions.h"
-#include "csv/dialect.h"
-#include "csv/read.h"
-#include "csv/stream.h"
-#include "csv/version.h"
+#include "csv.h"
 #include "dialect_private.h"
 
 /**
@@ -396,10 +391,6 @@ csvreader csvreader_advanced_init(csvdialect            dialect,
                                   csvstream_type        streamdata) {
   ZF_LOGI("CSV Reader Advanced Initializer called");
   ZF_LOGD("dialect:     `%p`", (void *)dialect);
-  ZF_LOGD("getnextchar: `%p`", (void *)getnextchar);
-  ZF_LOGD("appendchar:  `%p`", (void *)appendchar);
-  ZF_LOGD("savefield:   `%p`", (void *)savefield);
-  ZF_LOGD("saverecord:  `%p`", (void *)saverecord);
   ZF_LOGD("streamdata:  `%p`", (void *)streamdata);
 
   /* validation step */
