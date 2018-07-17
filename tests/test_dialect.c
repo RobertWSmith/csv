@@ -205,13 +205,16 @@ void test_CSVDialectSetGetEscapechar(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetLineterminator(void) {
-  csvdialect dialect;
-  size_t     lt_size;
+  csvdialect  dialect;
+  const char *lt;
+  size_t      lt_size;
 
   dialect = csvdialect_init();
   TEST_ASSERT_NOT_NULL(dialect);
 
-  TEST_ASSERT_NULL(csvdialect_get_lineterminator(dialect, &lt_size));
+  lt = csvdialect_get_lineterminator(dialect, &lt_size);
+  TEST_ASSERT_NOT_NULL(lt);
+  TEST_ASSERT_EQUAL_STRING(CSV_LINETERMINATOR_SYSTEM_DEFAULT, lt);
   TEST_ASSERT_EQUAL_UINT(0U, lt_size);
 
   TEST_ASSERT_TRUE(
