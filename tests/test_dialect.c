@@ -215,12 +215,12 @@ void test_CSVDialectSetGetLineterminator(void) {
   lt = csvdialect_get_lineterminator(dialect, &lt_size);
   TEST_ASSERT_NOT_NULL(lt);
   TEST_ASSERT_EQUAL_STRING(CSV_LINETERMINATOR_SYSTEM_DEFAULT, lt);
-  TEST_ASSERT_EQUAL_UINT(0U, lt_size);
+  TEST_ASSERT_EQUAL_UINT(strlen(CSV_LINETERMINATOR_SYSTEM_DEFAULT), lt_size);
 
   TEST_ASSERT_TRUE(
       csv_success(csvdialect_set_lineterminator(dialect, "\r\n", 0)));
-  TEST_ASSERT_EQUAL_STRING("\r\n",
-                           csvdialect_get_lineterminator(dialect, &lt_size));
+  lt = csvdialect_get_lineterminator(dialect, &lt_size);
+  TEST_ASSERT_EQUAL_STRING("\r\n", lt);
   TEST_ASSERT_EQUAL_UINT(2U, lt_size);
 
   csvdialect_close(&dialect);
