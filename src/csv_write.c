@@ -14,8 +14,14 @@
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
-#include "csv.h"
+#include "csv/definitions.h"
+#include "csv/version.h"
+
+#include "csv/dialect.h"
 #include "dialect_private.h"
+
+#include "csv/stream.h"
+#include "csv/write.h"
 
 /*
  * private forward declarations

@@ -11,6 +11,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "csv/definitions.h"
+#include "csv/version.h"
+
 #include "csv/dialect.h"
 
 /**
@@ -115,8 +118,8 @@ QUOTE_STYLE csvdialect_get_quotestyle(csvdialect dialect);
  */
 bool csvdialect_get_skipinitialspace(csvdialect dialect);
 
-#endif /* CSV_DIALECT_PRIVATE_H_ */
-
 /**
  * @endcond
  */
+
+#endif /* CSV_DIALECT_PRIVATE_H_ */

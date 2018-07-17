@@ -35,11 +35,11 @@
  *    borrowed from https://stackoverflow.com/a/6864861/2788895
  */
 #if defined(_WIN32) || defined(_WIN64) /* begin os detection */
-# define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r\n"
-#elif defined(macintosh)               /* OS 9 - very old */
-# define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r"
+#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r\n"
+#elif defined(macintosh) /* OS 9 - very old */
+#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r"
 #else /* *nix case */
-# define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\n"
+#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\n"
 #endif /* end os detection */
 
 /**
@@ -64,15 +64,15 @@ typedef enum CSV_STREAM_SIGNAL {
  */
 static inline const char* stream_signal(CSV_STREAM_SIGNAL csv_stream_signal) {
   switch (csv_stream_signal) {
-  case CSV_GOOD: return "CSV_GOOD";
+    case CSV_GOOD: return "CSV_GOOD";
 
-  case CSV_EOF: return "CSV_EOF";
+    case CSV_EOF: return "CSV_EOF";
 
-  case CSV_EOR: return "CSV_EOR";
+    case CSV_EOR: return "CSV_EOR";
 
-  case CSV_END_OF_FIELD: return "CSV_END_OF_FIELD";
+    case CSV_END_OF_FIELD: return "CSV_END_OF_FIELD";
 
-  case CSV_ERROR: return "CSV_ERROR";
+    case CSV_ERROR: return "CSV_ERROR";
   }
 }
 
@@ -154,7 +154,7 @@ typedef struct csv_return {
   uint64_t dialect_null : 1; /**< indicates a CSV Dialect was passed as
                                 null when one is required */
   uint64_t quoteescape_error : 1;
-  uint64_t delimiter_error   : 1;
+  uint64_t delimiter_error : 1;
 } csvreturn;
 
 /**
@@ -175,20 +175,7 @@ typedef struct csv_return {
  *
  * @see csvreturn
  */
-inline csvreturn csvreturn_init(bool succeeded) {
-  csvreturn rc = {
-    .succeeded         = succeeded,
-    .io_good           = 0,
-    .io_eof            = 0,
-    .io_error          = 0,
-    .truncated         = 0,
-    .dialect_null      = 0,
-    .quoteescape_error = 0,
-    .delimiter_error   = 0,
-  };
-
-  return rc;
-}
+#define csvreturn_init(succeeded) ((csvreturn){((int)succeeded) == 0 ? 0 : 1})
 
 /**
  * Validate call to CSV API was performed successfully
@@ -200,9 +187,7 @@ inline csvreturn csvreturn_init(bool succeeded) {
  *
  * @see csv_failure
  */
-inline bool csv_success(csvreturn retcode) {
-  return retcode.succeeded;
-}
+#define csv_success(retcode) ((bool)retcode.succeeded)
 
 /**
  * Validate call to CSV API failed
@@ -214,19 +199,6 @@ inline bool csv_success(csvreturn retcode) {
  *
  * @see csv_success
  */
-inline bool csv_failure(csvreturn retcode) {
-  return !retcode.succeeded;
-}
-
-/**
- * @brief Verify if EOF signal was returned
- *
- * @param  retcode CSV Return type
- *
- * @return         boolean, true indicates EOF returned, false indicates no EOF
- */
-inline bool io_eof(csvreturn retcode) {
-  return retcode.io_eof;
-}
+#define csv_failure(retcode) (!((bool)retcode.succeeded))
 
 #endif /* CSV_DEFINITIONS_H_ */
