@@ -57,26 +57,34 @@ void test_CSVWriterInitDestroy(void) {
 void test_CSVWriterTwoLines(void) {
   ZF_LOGI("Beginning test_CSVWriterTwoLines");
   csvreturn  rc;
-  csvdialect dialect = csvdialect_init();
+  size_t     record_size = 6;
+  csvdialect dialect     = csvdialect_init();
   csvwriter  writer = csvwriter_init(dialect, "data/test_writer_two_lines.csv");
 
   TEST_ASSERT_NOT_NULL(writer);
 
   const char **record = NULL;
-  record              = malloc(sizeof *record * 3);
+  record              = malloc(sizeof *record * record_size);
   TEST_ASSERT_NOT_NULL(record);
+
   record[0] = "field_0";
   record[1] = "field_1";
   record[2] = "field_2";
+  record[3] = "field_3";
+  record[4] = "field_4";
+  record[5] = "field_5";
 
-  rc = csvwriter_next_record(writer, record, 3);
+  rc = csvwriter_next_record(writer, record, record_size);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   record[0] = "a";
   record[1] = "1.2";
   record[2] = "true";
+  record[3] = "0x00";
+  record[4] = "embedded whitespace";
+  record[5] = "embedded,comma";
 
-  rc = csvwriter_next_record(writer, record, 3);
+  rc = csvwriter_next_record(writer, record, record_size);
   TEST_ASSERT_TRUE(csv_success(rc));
 
   csvwriter_close(&writer);

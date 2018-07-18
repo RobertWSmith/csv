@@ -15,9 +15,9 @@
  * @see csv/version.h
  */
 
-#ifdef __STDC_LIB_EXT1__
+#ifndef __STDC_WANT_LIB_EXT1__
 #define __STDC_WANT_LIB_EXT1__ 1
-#endif /* __STDC_LIB_EXT1__ */
+#endif
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -110,7 +110,10 @@ csvdialect csvdialect_init(void) {
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_lineterminator(dialect, NULL, 0))) {
+  if (csv_failure(csvdialect_set_lineterminator(
+          dialect,
+          CSV_LINETERMINATOR_SYSTEM_DEFAULT,
+          strlen(CSV_LINETERMINATOR_SYSTEM_DEFAULT)))) {
     ZF_LOGE("default initialization failure - lineterminator");
     csvdialect_close(&dialect);
     return NULL;
@@ -359,64 +362,43 @@ csv_comparison_char_type csvdialect_get_escapechar(csvdialect dialect) {
 csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
                                         const char *lineterminator,
                                         size_t      length) {
+  char *buffer = NULL;
+
   if (dialect == NULL) {
     ZF_LOGE("`dialect` value is NULL");
     return csvreturn_init(false);
   }
 
-  ZF_LOGD("lineterminator `%s` length `%lu`",
-          lineterminator,
-          (unsigned long)length);
-
   if (dialect->lineterminator != NULL) {
     free((void *)dialect->lineterminator);
   }
+  dialect->lineterminator        = NULL;
+  dialect->lineterminator_length = 0;
 
   if (lineterminator == NULL) {
-    dialect->lineterminator_length = 0;
-    dialect->lineterminator        = NULL;
+    ZF_LOGE("`lineterminator` value is NULL");
     return csvreturn_init(true);
-  } else if (length == 0) {
-    dialect->lineterminator_length = strlen(lineterminator);
-  } else {
-    dialect->lineterminator_length = length;
   }
 
-  dialect->lineterminator = malloc(sizeof *dialect->lineterminator *
-                                   (dialect->lineterminator_length + 1));
+  if (length == 0) length = strlen(lineterminator);
 
-  if (dialect->lineterminator == NULL) {
-    ZF_LOGE("Could not allocate space for the lineterminator");
+  if ((buffer = malloc(sizeof *buffer * (length + 1))) == NULL) {
+    ZF_LOGE("Could not allocate new lineterminator buffer");
     return csvreturn_init(false);
   }
 
-#ifdef __STDC_LIB_EXT1__
-  set_constraint_handler_s(ignore_handler_s);
-  errno_t r = strncpy_s((char *)dialect->lineterminator,
-                        sizeof dialect->lineterminator,
-                        lineterminator,
-                        sizeof lineterminator);
-  /* r == 0 on success */
-  if (r != 0) {
-    ZF_LOGE("Error using strncpy_s");
-    free((void *)dialect->lineterminator);
-    dialect->lineterminator = NULL;
+  if (strncpy(buffer, lineterminator, (length + 1)) == NULL) {
+    ZF_LOGE("strncpy could not copy string");
+    free(buffer);
     return csvreturn_init(false);
   }
-#else
-  if (strncpy((char *)dialect->lineterminator,
-              lineterminator,
-              sizeof dialect->lineterminator) == NULL) {
-    ZF_LOGE("Error using strncpy");
-    free((void *)dialect->lineterminator);
-    dialect->lineterminator = NULL;
-    return csvreturn_init(false);
-  }
-#endif /* __STDC_LIB_EXT1__ */
 
-  ZF_LOGV("Source lineterminator: '%s' Destination Lineterminator: `%s`",
-          lineterminator,
-          dialect->lineterminator);
+  dialect->lineterminator        = (const char *)buffer;
+  dialect->lineterminator_length = length;
+
+  ZF_LOGD("lineterminator `%s` length `%lu`",
+          dialect->lineterminator,
+          (unsigned long)dialect->lineterminator_length);
 
   return csvreturn_init(true);
 }

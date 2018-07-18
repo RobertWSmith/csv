@@ -194,10 +194,18 @@ csvreturn csvwriter_next_record(csvwriter    writer,
   CSV_STREAM_SIGNAL        field_signal;
   CSV_STREAM_SIGNAL        stream_signal;
   size_t                   lineterminator_idx;
-  bool                     needs_quoting         = true;
-  size_t                   lineterminator_length = 0;
+  bool                     needs_quoting = true;
+  size_t                   lineterminator_length;
   const char *             lineterminator =
       csvdialect_get_lineterminator(writer->dialect, &lineterminator_length);
+
+  if (lineterminator == NULL) {
+  }
+
+  if (lineterminator_length == 0) {
+    ZF_LOGD("Lineterminator length returned is zero");
+    lineterminator_length = strlen(lineterminator);
+  }
 
   if (writer == NULL) {
     ZF_LOGE("CSV Writer is NULL");
@@ -366,10 +374,12 @@ csvreturn csvwriter_next_record(csvwriter    writer,
 
   for (lineterminator_idx = 0; lineterminator_idx < lineterminator_length;
        ++lineterminator_idx) {
-    if ((value = lineterminator[lineterminator_idx]) == 0) {
+    if ((value = lineterminator[lineterminator_idx]) == '\0') {
       break;
     }
-
+    ZF_LOGV("Lineterminator Index: %lu Value: `%c`",
+            (unsigned long)lineterminator_idx,
+            lineterminator[lineterminator_idx]);
     (*writer->writechar)(writer->streamdata, value);
   }
 
@@ -565,7 +575,7 @@ CSV_STREAM_SIGNAL csvwriter_setnextfield(csvstream_type streamdata,
 
   csvfilewriter filewriter = (csvfilewriter)streamdata;
 
-  if ((filewriter->position_r + 1) >= filewriter->capacity_r) {
+  if (filewriter->position_r >= (filewriter->capacity_r - 1)) {
     ZF_LOGD("Reached end of record");
     return CSV_EOR;
   }

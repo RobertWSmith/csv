@@ -218,25 +218,23 @@ void test_CSVDialectSetGetEscapechar(void) {
  */
 void test_CSVDialectSetGetLineterminator(void) {
   ZF_LOGI("Beginning test_CSVDialectSetGetLineterminator");
-  csvdialect  dialect;
-  const char *lt;
-  size_t      lt_size;
-
+  csvdialect  dialect  = NULL;
+  const char *lt       = NULL;
+  size_t      lt_size  = 0;
   const char *crnl     = "\r\n";
   size_t      crnl_len = strlen(crnl);
-
-  const char *cr     = "\r";
-  size_t      cr_len = strlen(cr);
-
-  const char *nl     = "\n";
-  size_t      nl_len = strlen(nl);
+  const char *cr       = "\r";
+  size_t      cr_len   = strlen(cr);
+  const char *nl       = "\n";
+  size_t      nl_len   = strlen(nl);
 
   dialect = csvdialect_init();
   TEST_ASSERT_NOT_NULL(dialect);
 
   lt = csvdialect_get_lineterminator(dialect, &lt_size);
-  TEST_ASSERT_NULL(lt);
-  TEST_ASSERT_EQUAL_UINT(0U, lt_size);
+  TEST_ASSERT_NOT_NULL(lt);
+  TEST_ASSERT_EQUAL_STRING(CSV_LINETERMINATOR_SYSTEM_DEFAULT, lt);
+  TEST_ASSERT_EQUAL_UINT(strlen(CSV_LINETERMINATOR_SYSTEM_DEFAULT), lt_size);
 
   TEST_ASSERT_TRUE(
       csv_success(csvdialect_set_lineterminator(dialect, crnl, crnl_len)));
