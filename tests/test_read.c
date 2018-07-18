@@ -69,7 +69,7 @@ void test_CSVReaderIrisDataset(void) {
   reader = csvreader_init(dialect, "data/iris.csv");
   TEST_ASSERT_NOT_NULL(reader);
 
-  ZF_LOGI("record length: %zu", record_length);
+  ZF_LOGI("record length: %lu", (unsigned long)record_length);
   rc = csvreader_next_record(reader, &record, &record_length);
   TEST_ASSERT_TRUE(csv_success(rc));
 
@@ -82,7 +82,7 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_FALSE(rc.io_error);
 
   // there are exactly 5 fields in this dataset
-  ZF_LOGI("record length: %zu", record_length);
+  ZF_LOGI("record length: %lu", (unsigned long)record_length);
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
 
   // value equivalence for the header row
@@ -110,7 +110,7 @@ void test_CSVReaderIrisDataset(void) {
   TEST_ASSERT_FALSE(rc.io_error);
 
   // there are exactly 5 fields in this dataset
-  ZF_LOGI("record length: %zu", record_length);
+  ZF_LOGI("record length: %lu", (unsigned long)record_length);
   TEST_ASSERT_EQUAL_UINT(5U, record_length);
 
   // value equivalence for the header row

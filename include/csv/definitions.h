@@ -14,35 +14,6 @@
 #include "version.h"
 
 /**
- * @brief CSV Linterminator definitions
- *
- * Definitions which help provide lineterminators of various styles and
- * character encodings. All begin with the style @c _CSV_LINETERMINATOR_*
- * followed by the line terminator style, which are currently defined as
- * @c CRNL ("\r\n"), @c CR ("\r") and @c NL ("\n"). Finally, the suffix
- * determines the character encoding, which is currently defined as
- * @c CHAR (@c char), @c WCHAR (@c wchar_t), @c CHARU8 (@c char, with UTF-8
- * encoding), @c CHAR16 (@c char16_t), @c CHAR32 (@c char32_t).
- *
- * There is also an attempt to determine the system default line terminator,
- * which is performed by first checking if @c _WIN32 or @c _WIN64 is defined.
- * If so, the @c CRNL variants are defined as the default. Next, there is a
- * check for legacy Macintosh OS 9 definitions, if so the @c CR variant is
- * assigned as the default. Finally, any other system is assumed to be a Unix
- * variant and the @c NL variant is assigned as the system default.
- *
- * Notes:
- *    borrowed from https://stackoverflow.com/a/6864861/2788895
- */
-#if defined(_WIN32) || defined(_WIN64) /* begin os detection */
-#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r\n"
-#elif defined(macintosh) /* OS 9 - very old */
-#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r"
-#else /* *nix case */
-#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\n"
-#endif /* end os detection */
-
-/**
  * @brief CSV Stream Signal, controls parser behavior
  */
 typedef enum CSV_STREAM_SIGNAL {
@@ -175,7 +146,8 @@ typedef struct csv_return {
  *
  * @see csvreturn
  */
-#define csvreturn_init(succeeded) ((csvreturn){((int)succeeded) == 0 ? 0 : 1})
+#define csvreturn_init(succeeded) \
+  ((csvreturn){((int)succeeded) == 0 ? 0 : 1, 0, 0, 0, 0, 0, 0, 0})
 
 /**
  * Validate call to CSV API was performed successfully

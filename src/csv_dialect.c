@@ -15,6 +15,10 @@
  * @see csv/version.h
  */
 
+#ifdef __STDC_LIB_EXT1__
+#define __STDC_WANT_LIB_EXT1__ 1
+#endif /* __STDC_LIB_EXT1__ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,10 +29,11 @@
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
-#include "csv/definitions.h"
-#include "csv/version.h"
+#include "csv.h"
+// #include "csv/definitions.h"
+// #include "csv/version.h"
 
-#include "csv/dialect.h"
+// #include "csv/dialect.h"
 #include "dialect_private.h"
 
 /*
@@ -105,8 +110,7 @@ csvdialect csvdialect_init(void) {
     return NULL;
   }
 
-  if (csv_failure(csvdialect_set_lineterminator(
-          dialect, CSV_LINETERMINATOR_SYSTEM_DEFAULT, 0))) {
+  if (csv_failure(csvdialect_set_lineterminator(dialect, NULL, 0))) {
     ZF_LOGE("default initialization failure - lineterminator");
     csvdialect_close(&dialect);
     return NULL;
@@ -361,37 +365,59 @@ csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
   }
 
   ZF_LOGD("lineterminator `%s` length `%lu`",
-          (const char *)lineterminator,
+          lineterminator,
           (unsigned long)length);
+
+  if (dialect->lineterminator != NULL) {
+    free((void *)dialect->lineterminator);
+  }
 
   if (lineterminator == NULL) {
     dialect->lineterminator_length = 0;
+    dialect->lineterminator        = NULL;
+    return csvreturn_init(true);
   } else if (length == 0) {
     dialect->lineterminator_length = strlen(lineterminator);
   } else {
     dialect->lineterminator_length = length;
   }
 
-  char *temp_lt = NULL;
+  dialect->lineterminator = malloc(sizeof *dialect->lineterminator *
+                                   (dialect->lineterminator_length + 1));
 
-  if (dialect->lineterminator != NULL) {
-    free((void *)dialect->lineterminator);
-  }
-
-  temp_lt = calloc(dialect->lineterminator_length + 1,
-                   sizeof *dialect->lineterminator);
-  if (temp_lt == NULL) {
+  if (dialect->lineterminator == NULL) {
     ZF_LOGE("Could not allocate space for the lineterminator");
     return csvreturn_init(false);
   }
 
-  strncpy(temp_lt, lineterminator, dialect->lineterminator_length);
-
-  if (dialect->lineterminator != NULL) {
-    free((void *)(dialect->lineterminator));
+#ifdef __STDC_LIB_EXT1__
+  set_constraint_handler_s(ignore_handler_s);
+  errno_t r = strncpy_s((char *)dialect->lineterminator,
+                        sizeof dialect->lineterminator,
+                        lineterminator,
+                        sizeof lineterminator);
+  /* r == 0 on success */
+  if (r != 0) {
+    ZF_LOGE("Error using strncpy_s");
+    free((void *)dialect->lineterminator);
+    dialect->lineterminator = NULL;
+    return csvreturn_init(false);
   }
+#else
+  if (strncpy((char *)dialect->lineterminator,
+              lineterminator,
+              sizeof dialect->lineterminator) == NULL) {
+    ZF_LOGE("Error using strncpy");
+    free((void *)dialect->lineterminator);
+    dialect->lineterminator = NULL;
+    return csvreturn_init(false);
+  }
+#endif /* __STDC_LIB_EXT1__ */
 
-  dialect->lineterminator = (const char *)temp_lt;
+  ZF_LOGV("Source lineterminator: '%s' Destination Lineterminator: `%s`",
+          lineterminator,
+          dialect->lineterminator);
+
   return csvreturn_init(true);
 }
 
@@ -402,9 +428,9 @@ const char *csvdialect_get_lineterminator(csvdialect dialect, size_t *length) {
     return NULL;
   }
 
-  ZF_LOGD("lineterminator `%s` length `%zu`",
+  ZF_LOGD("lineterminator `%s` length `%lu`",
           dialect->lineterminator,
-          dialect->lineterminator_length);
+          (unsigned long)dialect->lineterminator_length);
   *length = dialect->lineterminator_length;
   return dialect->lineterminator;
 }

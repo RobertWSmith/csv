@@ -25,7 +25,7 @@ static void file_output_callback(const zf_log_message *msg, void *arg) {
 static void file_output_close(void) { fclose(_log_file); }
 
 static void file_output_open(const char *const log_path) {
-  _log_file = fopen(log_path, "w");
+  _log_file = fopen(log_path, "wb");
 
   if (!_log_file) {
     ZF_LOGW("Failed to open log file %s", log_path);
@@ -40,6 +40,7 @@ static void file_output_open(const char *const log_path) {
  * and destroyed. Also validate that the final state is NULL as documented.
  */
 void test_CSVDialectInitDestroy(void) {
+  ZF_LOGI("Beginning test_CSVDialectInitDestroy");
   csvdialect dialect = NULL;
 
   dialect = csvdialect_init();
@@ -47,12 +48,14 @@ void test_CSVDialectInitDestroy(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectInitDestroy");
 }
 
 /*
  * Validate copies of CSV Dialect are created accurately
  */
 void test_CSVDialectCopy(void) {
+  ZF_LOGI("Beginning test_CSVDialectCopy");
   csvdialect  source, destination;
   size_t      lh_size, rh_size;
   const char *lh, *rh;
@@ -111,12 +114,14 @@ void test_CSVDialectCopy(void) {
   destination = csvdialect_copy(source);
   TEST_ASSERT_NULL(source);
   TEST_ASSERT_NULL(destination);
+  ZF_LOGI("Ending test_CSVDialectCopy");
 }
 
 /*
  * Validate that `csv_validate` returns the correct analysis of a dialect.
  */
 void test_CSVDialectValidate(void) {
+  ZF_LOGI("Beginning test_CSVDialectValidate");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -132,6 +137,7 @@ void test_CSVDialectValidate(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectValidate");
 }
 
 /*
@@ -139,6 +145,7 @@ void test_CSVDialectValidate(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetDelimiter(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetDelimiter");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -154,6 +161,7 @@ void test_CSVDialectSetGetDelimiter(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectSetGetDelimiter");
 }
 
 /*
@@ -161,6 +169,7 @@ void test_CSVDialectSetGetDelimiter(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetDoublequote(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetDoublequote");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -176,6 +185,7 @@ void test_CSVDialectSetGetDoublequote(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectSetGetDoublequote");
 }
 
 /*
@@ -183,6 +193,7 @@ void test_CSVDialectSetGetDoublequote(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetEscapechar(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetEscapechar");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -198,6 +209,7 @@ void test_CSVDialectSetGetEscapechar(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Beginning test_CSVDialectSetGetEscapechar");
 }
 
 /*
@@ -205,26 +217,48 @@ void test_CSVDialectSetGetEscapechar(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetLineterminator(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetLineterminator");
   csvdialect  dialect;
   const char *lt;
   size_t      lt_size;
+
+  const char *crnl     = "\r\n";
+  size_t      crnl_len = strlen(crnl);
+
+  const char *cr     = "\r";
+  size_t      cr_len = strlen(cr);
+
+  const char *nl     = "\n";
+  size_t      nl_len = strlen(nl);
 
   dialect = csvdialect_init();
   TEST_ASSERT_NOT_NULL(dialect);
 
   lt = csvdialect_get_lineterminator(dialect, &lt_size);
-  TEST_ASSERT_NOT_NULL(lt);
-  TEST_ASSERT_EQUAL_STRING(CSV_LINETERMINATOR_SYSTEM_DEFAULT, lt);
-  TEST_ASSERT_EQUAL_UINT(strlen(CSV_LINETERMINATOR_SYSTEM_DEFAULT), lt_size);
+  TEST_ASSERT_NULL(lt);
+  TEST_ASSERT_EQUAL_UINT(0U, lt_size);
 
   TEST_ASSERT_TRUE(
-      csv_success(csvdialect_set_lineterminator(dialect, "\r\n", 0)));
+      csv_success(csvdialect_set_lineterminator(dialect, crnl, crnl_len)));
   lt = csvdialect_get_lineterminator(dialect, &lt_size);
-  TEST_ASSERT_EQUAL_STRING("\r\n", lt);
-  TEST_ASSERT_EQUAL_UINT(2U, lt_size);
+  TEST_ASSERT_EQUAL_STRING(crnl, lt);
+  TEST_ASSERT_EQUAL_UINT(crnl_len, lt_size);
+
+  TEST_ASSERT_TRUE(
+      csv_success(csvdialect_set_lineterminator(dialect, cr, cr_len)));
+  lt = csvdialect_get_lineterminator(dialect, &lt_size);
+  TEST_ASSERT_EQUAL_STRING(cr, lt);
+  TEST_ASSERT_EQUAL_UINT(cr_len, lt_size);
+
+  TEST_ASSERT_TRUE(
+      csv_success(csvdialect_set_lineterminator(dialect, nl, nl_len)));
+  lt = csvdialect_get_lineterminator(dialect, &lt_size);
+  TEST_ASSERT_EQUAL_STRING(nl, lt);
+  TEST_ASSERT_EQUAL_UINT(nl_len, lt_size);
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectSetGetLineterminator");
 }
 
 /*
@@ -232,6 +266,7 @@ void test_CSVDialectSetGetLineterminator(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetQuotechar(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetQuotechar");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -247,6 +282,7 @@ void test_CSVDialectSetGetQuotechar(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectSetGetQuotechar");
 }
 
 /*
@@ -254,6 +290,7 @@ void test_CSVDialectSetGetQuotechar(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetQuotestyle(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetQuotestyle");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -272,6 +309,7 @@ void test_CSVDialectSetGetQuotestyle(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectSetGetQuotestyle");
 }
 
 /*
@@ -279,6 +317,7 @@ void test_CSVDialectSetGetQuotestyle(void) {
  * and that the defaults are in alignment with the documentation
  */
 void test_CSVDialectSetGetSkipInitialSpace(void) {
+  ZF_LOGI("Beginning test_CSVDialectSetGetSkipInitialSpace");
   csvdialect dialect;
 
   dialect = csvdialect_init();
@@ -294,6 +333,7 @@ void test_CSVDialectSetGetSkipInitialSpace(void) {
 
   csvdialect_close(&dialect);
   TEST_ASSERT_NULL(dialect);
+  ZF_LOGI("Ending test_CSVDialectSetGetSkipInitialSpace");
 }
 
 /*
