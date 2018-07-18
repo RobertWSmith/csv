@@ -398,7 +398,7 @@ csvreturn csvdialect_set_lineterminator(csvdialect  dialect,
 
   ZF_LOGD("lineterminator `%s` length `%lu`",
           dialect->lineterminator,
-          (unsigned long)dialect->lineterminator_length);
+          (long unsigned)dialect->lineterminator_length);
 
   return csvreturn_init(true);
 }
@@ -412,7 +412,7 @@ const char *csvdialect_get_lineterminator(csvdialect dialect, size_t *length) {
 
   ZF_LOGD("lineterminator `%s` length `%lu`",
           dialect->lineterminator,
-          (unsigned long)dialect->lineterminator_length);
+          (long unsigned)dialect->lineterminator_length);
   *length = dialect->lineterminator_length;
   return dialect->lineterminator;
 }

@@ -185,21 +185,41 @@ void csvwriter_close(csvwriter *writer) {
 csvreturn csvwriter_next_record(csvwriter    writer,
                                 const char **record,
                                 size_t       length) {
+  if (writer == NULL) {
+    ZF_LOGE("CSV Writer is NULL");
+    return csvreturn_init(false);
+  } else if (record == NULL) {
+    ZF_LOGE("CSV Record is NULL");
+    return csvreturn_init(false);
+  }
+
   csvreturn                rc;
   size_t                   i;
   size_t                   j;
   size_t                   field_len;
   csv_comparison_char_type value;
-  QUOTE_STYLE              quote_style;
   CSV_STREAM_SIGNAL        field_signal;
   CSV_STREAM_SIGNAL        stream_signal;
   size_t                   lineterminator_idx;
-  bool                     needs_quoting = true;
-  size_t                   lineterminator_length;
-  const char *             lineterminator =
+  csv_comparison_char_type escapechar =
+      csvdialect_get_escapechar(writer->dialect);
+  csv_comparison_char_type quotechar =
+      csvdialect_get_quotechar(writer->dialect);
+  csv_comparison_char_type delimiter =
+      csvdialect_get_delimiter(writer->dialect);
+  QUOTE_STYLE quote_style   = csvdialect_get_quotestyle(writer->dialect);
+  bool        needs_quoting = true;
+  size_t      lineterminator_length = 0;
+  const char *lineterminator =
       csvdialect_get_lineterminator(writer->dialect, &lineterminator_length);
 
   if (lineterminator == NULL) {
+    csvdialect_set_lineterminator(writer->dialect,
+                                  CSV_LINETERMINATOR_SYSTEM_DEFAULT,
+                                  strlen(CSV_LINETERMINATOR_SYSTEM_DEFAULT));
+
+    lineterminator =
+        csvdialect_get_lineterminator(writer->dialect, &lineterminator_length);
   }
 
   if (lineterminator_length == 0) {
@@ -207,23 +227,18 @@ csvreturn csvwriter_next_record(csvwriter    writer,
     lineterminator_length = strlen(lineterminator);
   }
 
-  if (writer == NULL) {
-    ZF_LOGE("CSV Writer is NULL");
-    rc = csvreturn_init(false);
-    return rc;
-  }
-
   (*writer->setrecord)(writer->streamdata, record, length);
-  quote_style = csvdialect_get_quotestyle(writer->dialect);
 
   for (i = 0; i < length; ++i) {
     field_signal = (*writer->setnextfield)(writer->streamdata, &field_len);
-    ZF_LOGD("Field # %lu - Field Length: %lu - Field Signal: %u",
+    ZF_LOGD("Field# %lu - Field Length: %lu - Field Signal: %u",
             (long unsigned)i,
             (long unsigned)field_len,
             field_signal);
 
     if (field_signal == CSV_ERROR) {
+      break;
+    } else if (field_signal == CSV_EOR) {
       break;
     }
 
@@ -241,6 +256,7 @@ csvreturn csvwriter_next_record(csvwriter    writer,
 
       case QUOTE_STYLE_MINIMAL:
         ZF_LOGD("QUOTE_STYLE_MINIMAL - must determine if quoting is required");
+        needs_quoting = false;
 
         /* need to check the field for the following to determine quoting:
          * - delimiter
@@ -293,8 +309,7 @@ csvreturn csvwriter_next_record(csvwriter    writer,
      */
     if (i > 0) {
       ZF_LOGD("Writing delimiter character");
-      (*writer->writechar)(writer->streamdata,
-                           csvdialect_get_delimiter(writer->dialect));
+      (*writer->writechar)(writer->streamdata, delimiter);
     }
 
     /* ensure field position value is set to zero */
@@ -302,8 +317,7 @@ csvreturn csvwriter_next_record(csvwriter    writer,
 
     /* initial quote -- outside the loop */
     if (needs_quoting) {
-      (*writer->writechar)(writer->streamdata,
-                           csvdialect_get_quotechar(writer->dialect));
+      (*writer->writechar)(writer->streamdata, quotechar);
     }
 
     for (j = 0; j < field_len; ++j) {
@@ -321,40 +335,29 @@ csvreturn csvwriter_next_record(csvwriter    writer,
 
       /* apply escape character, if neccessary */
       if (!needs_quoting) {
-        if ((value == csvdialect_get_delimiter(writer->dialect)) ||
-            (value == csvdialect_get_quotechar(writer->dialect)) ||
-            (value == csvdialect_get_escapechar(writer->dialect)) ||
-            (value == '\n') || (value == '\r')) {
+        if ((value == delimiter) || (value == quotechar) ||
+            (value == escapechar) || (value == '\n') || (value == '\r')) {
           ZF_LOGV("value == delimiter? %s",
-                  (value == csvdialect_get_delimiter(writer->dialect))
-                      ? "true"
-                      : "false");
+                  (value == delimiter) ? "true" : "false");
           ZF_LOGV("value == quotechar? %s",
-                  (value == csvdialect_get_quotechar(writer->dialect))
-                      ? "true"
-                      : "false");
+                  (value == quotechar) ? "true" : "false");
           ZF_LOGV("value == escapechar? %s",
-                  (value == csvdialect_get_escapechar(writer->dialect))
-                      ? "true"
-                      : "false");
+                  (value == escapechar) ? "true" : "false");
           ZF_LOGV("value == newline? %s", (value == '\n') ? "true" : "false");
           ZF_LOGV("value == carriage return? %s",
                   (value == '\r') ? "true" : "false");
 
-          (*writer->writechar)(writer->streamdata,
-                               csvdialect_get_escapechar(writer->dialect));
+          (*writer->writechar)(writer->streamdata, escapechar);
         }
       } else {
         /* quote in quoted field */
-        if (value == csvdialect_get_quotechar(writer->dialect)) {
+        if (value == quotechar) {
           if (csvdialect_get_doublequote(writer->dialect)) {
             /* double the quoting character to escape */
-            (*writer->writechar)(writer->streamdata,
-                                 csvdialect_get_quotechar(writer->dialect));
+            (*writer->writechar)(writer->streamdata, quotechar);
           } else {
             /* apply the escape character */
-            (*writer->writechar)(writer->streamdata,
-                                 csvdialect_get_escapechar(writer->dialect));
+            (*writer->writechar)(writer->streamdata, escapechar);
           }
         }
       }
@@ -365,8 +368,7 @@ csvreturn csvwriter_next_record(csvwriter    writer,
 
     /* final quote -- outside the loop */
     if (needs_quoting) {
-      (*writer->writechar)(writer->streamdata,
-                           csvdialect_get_quotechar(writer->dialect));
+      (*writer->writechar)(writer->streamdata, quotechar);
     }
   }
 
@@ -378,13 +380,12 @@ csvreturn csvwriter_next_record(csvwriter    writer,
       break;
     }
     ZF_LOGV("Lineterminator Index: %lu Value: `%c`",
-            (unsigned long)lineterminator_idx,
+            (long unsigned)lineterminator_idx,
             lineterminator[lineterminator_idx]);
     (*writer->writechar)(writer->streamdata, value);
   }
 
-  rc = csvreturn_init(true);
-  return rc;
+  return csvreturn_init(true);
 }
 
 /**
@@ -575,7 +576,7 @@ CSV_STREAM_SIGNAL csvwriter_setnextfield(csvstream_type streamdata,
 
   csvfilewriter filewriter = (csvfilewriter)streamdata;
 
-  if (filewriter->position_r >= (filewriter->capacity_r - 1)) {
+  if (filewriter->position_r >= filewriter->capacity_r) {
     ZF_LOGD("Reached end of record");
     return CSV_EOR;
   }
