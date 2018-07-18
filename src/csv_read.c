@@ -30,8 +30,14 @@
 #endif /* ZF_LOG_LEVEL */
 #include "zf_log.h"
 
-#include "csv.h"
+#include "csv/definitions.h"
+#include "csv/version.h"
+
+#include "csv/dialect.h"
 #include "dialect_private.h"
+
+#include "csv/read.h"
+#include "csv/stream.h"
 
 /**
  * @brief Flags to store the parser state
@@ -80,7 +86,7 @@ typedef enum CSV_READER_PARSER_STATE {
  *
  * @see CSV_READER_PARSER_STATE
  */
-inline const char *csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
+const char *csv_reader_parser_state(CSV_READER_PARSER_STATE state) {
   switch (state) {
     case START_RECORD: return "START_RECORD";
     case START_FIELD: return "START_FIELD";
@@ -307,7 +313,7 @@ csvreader _csvreader_init(csvdialect dialect);
  * field, if it indicates a field boundary has been determined, a record
  * boundary or the end of the stream.
  */
-inline void parse_value(csvreader reader, csv_comparison_char_type value);
+void parse_value(csvreader reader, csv_comparison_char_type value);
 
 /*
  * end of private forward declarations
@@ -948,8 +954,7 @@ csvreader _csvreader_init(csvdialect dialect) {
  */
 
 /* bool controls 'should continue' (true) or should break switch (false) */
-inline bool parse_start_record(csvreader                reader,
-                               csv_comparison_char_type value) {
+bool parse_start_record(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   if (value == '\0') {
@@ -970,8 +975,7 @@ inline bool parse_start_record(csvreader                reader,
   return true;
 }
 
-inline void parse_start_field(csvreader                reader,
-                              csv_comparison_char_type value) {
+void parse_start_field(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   if ((value == '\0') || (value == '\n') || (value == '\r')) {
@@ -1008,8 +1012,7 @@ inline void parse_start_field(csvreader                reader,
   }
 }
 
-inline void parse_escaped_char(csvreader                reader,
-                               csv_comparison_char_type value) {
+void parse_escaped_char(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   if ((value == '\n') || (value == '\r')) {
@@ -1026,7 +1029,7 @@ inline void parse_escaped_char(csvreader                reader,
   ZF_LOGD("setting parser state to IN_FIELD");
 }
 
-inline void parse_in_field(csvreader reader, csv_comparison_char_type value) {
+void parse_in_field(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   /* in unquoted field */
@@ -1052,8 +1055,7 @@ inline void parse_in_field(csvreader reader, csv_comparison_char_type value) {
   }
 }
 
-inline void parse_in_quoted_field(csvreader                reader,
-                                  csv_comparison_char_type value) {
+void parse_in_quoted_field(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   if (value == '\0') { /* no-op */
@@ -1074,8 +1076,8 @@ inline void parse_in_quoted_field(csvreader                reader,
   }
 }
 
-inline void parse_quote_in_quoted_field(csvreader                reader,
-                                        csv_comparison_char_type value) {
+void parse_quote_in_quoted_field(csvreader                reader,
+                                 csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   if ((csvdialect_get_quotestyle(reader->dialect) != QUOTE_STYLE_NONE) &&
@@ -1106,7 +1108,7 @@ inline void parse_quote_in_quoted_field(csvreader                reader,
   }
 }
 
-inline void parse_value(csvreader reader, csv_comparison_char_type value) {
+void parse_value(csvreader reader, csv_comparison_char_type value) {
   ZF_LOGD("input value: %c", (char)value);
 
   switch (reader->parser_state) {

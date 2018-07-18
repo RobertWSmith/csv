@@ -35,14 +35,13 @@ set_target_properties(csv PROPERTIES
     PRIVATE_HEADER ${CSV_PRIVATE_HEADER_FILES})
 
 target_include_directories(csv
-  PUBLIC $<BUILD_INTERFACE:${CSV_PUBLIC_INCLUDE_DIR}>
-  PUBLIC $<INSTALL_INTERFACE:include>
-  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  PUBLIC  $<BUILD_INTERFACE:${CSV_PUBLIC_INCLUDE_DIR}>;$<INSTALL_INTERFACE:include>)
 
-# target_compile_options(csv
-#   PUBLIC $<$<C_COMPILER_ID:GNU>:-Wall;-Wextra;-Wshadow;-pedantic;-Wno-format>
-#   PUBLIC $<$<C_COMPILER_ID:Clang>:-Weverything;-pedantic>
-#   PUBLIC $<$<C_COMPILER_ID:MSVC>:/W4>)
+target_compile_options(csv
+  PUBLIC $<$<C_COMPILER_ID:GNU>:-Wall;-Wextra;-Wshadow;-pedantic;-Wno-format;$<$<BOOL:BUILD_VERBOSE>:-v>>
+  PUBLIC $<$<C_COMPILER_ID:Clang>:-Weverything;-pedantic;$<$<BOOL:BUILD_VERBOSE>:-v>>
+  PUBLIC $<$<C_COMPILER_ID:MSVC>:/W4>)
 
 target_compile_definitions(csv PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>)
 
