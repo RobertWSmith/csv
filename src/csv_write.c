@@ -2,26 +2,27 @@
  * @cond INTERNAL
  * @file csv_write.c
  */
+
+#ifndef __STDC_WANT_LIB_EXT1__
+#define __STDC_WANT_LIB_EXT1__ 1
+#endif
+
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// TODO: define CSV log level namespace
-#ifndef ZF_LOG_LEVEL
-#define ZF_LOG_LEVEL ZF_LOG_VERBOSE
-#endif /* ZF_LOG_LEVEL */
-#include "zf_log.h"
+#include "csv.h"
 
-#include "csv/definitions.h"
-#include "csv/version.h"
-
-#include "csv/dialect.h"
-#include "dialect_private.h"
-
-#include "csv/stream.h"
-#include "csv/write.h"
+// #include "csv/definitions.h"
+// #include "csv/version.h"
+//
+// #include "csv/dialect.h"
+// #include "dialect_private.h"
+//
+// #include "csv/stream.h"
+// #include "csv/write.h"
 
 /*
  * private forward declarations

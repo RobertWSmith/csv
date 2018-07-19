@@ -13,6 +13,11 @@
 
 #include "version.h"
 
+#ifndef ZF_LOG_LEVEL
+# define ZF_LOG_LEVEL ZF_LOG_NONE
+#endif /* ZF_LOG_LEVEL */
+#include "zf_log.h"
+
 /**
  * @brief CSV Linterminator definitions
  *
@@ -35,11 +40,11 @@
  *    borrowed from https://stackoverflow.com/a/6864861/2788895
  */
 #if defined(_WIN32) || defined(WIN32) /* begin os detection */
-#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r\n"
-#elif defined(macintosh) /* OS 9 - very old */
-#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r"
+# define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r\n"
+#elif defined(macintosh)              /* OS 9 - very old */
+# define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\r"
 #else /* *nix case */
-#define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\n"
+# define CSV_LINETERMINATOR_SYSTEM_DEFAULT "\n"
 #endif /* end os detection */
 
 /**
@@ -64,15 +69,15 @@ typedef enum CSV_STREAM_SIGNAL {
  */
 static inline const char* stream_signal(CSV_STREAM_SIGNAL csv_stream_signal) {
   switch (csv_stream_signal) {
-    case CSV_GOOD: return "CSV_GOOD";
+  case CSV_GOOD: return "CSV_GOOD";
 
-    case CSV_EOF: return "CSV_EOF";
+  case CSV_EOF: return "CSV_EOF";
 
-    case CSV_EOR: return "CSV_EOR";
+  case CSV_EOR: return "CSV_EOR";
 
-    case CSV_END_OF_FIELD: return "CSV_END_OF_FIELD";
+  case CSV_END_OF_FIELD: return "CSV_END_OF_FIELD";
 
-    case CSV_ERROR: return "CSV_ERROR";
+  case CSV_ERROR: return "CSV_ERROR";
   }
 }
 
@@ -154,7 +159,7 @@ typedef struct csv_return {
   uint64_t dialect_null : 1; /**< indicates a CSV Dialect was passed as
                                 null when one is required */
   uint64_t quoteescape_error : 1;
-  uint64_t delimiter_error : 1;
+  uint64_t delimiter_error   : 1;
 } csvreturn;
 
 /**
@@ -176,7 +181,7 @@ typedef struct csv_return {
  * @see csvreturn
  */
 #define csvreturn_init(succeeded) \
-  ((csvreturn){((int)succeeded) == 0 ? 0 : 1, 0, 0, 0, 0, 0, 0, 0})
+  ((csvreturn) {((int)succeeded) == 0 ? 0 : 1, 0, 0, 0, 0, 0, 0, 0 })
 
 /**
  * Validate call to CSV API was performed successfully

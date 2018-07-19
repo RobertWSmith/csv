@@ -43,7 +43,9 @@ target_compile_options(csv
   PUBLIC $<$<C_COMPILER_ID:Clang>:-Weverything;-pedantic;$<$<BOOL:BUILD_VERBOSE>:-v>>
   PUBLIC $<$<C_COMPILER_ID:MSVC>:/W4>)
 
-target_compile_definitions(csv PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>)
+target_compile_definitions(csv
+  PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>
+  PUBLIC ZF_LOG_LEVEL=${CSV_LOG_LEVEL})
 
 # # cmake/ClangTidy.cmake
 # if(CLANG_TIDY_FOUND)
