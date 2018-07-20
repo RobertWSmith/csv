@@ -61,9 +61,10 @@ struct csv_dialect {
 };
 
 csvdialect csvdialect_alloc(void) {
-  csvdialect dialect;
+  csvdialect dialect = NULL;
 
   if ((dialect = malloc(sizeof *dialect)) == NULL) {
+    ZF_LOGE("CSV Dialect struct pointer could not be allocated");
     return NULL;
   }
 
@@ -80,7 +81,7 @@ csvdialect csvdialect_alloc(void) {
 }
 
 csvdialect csvdialect_init(void) {
-  csvdialect dialect;
+  csvdialect dialect = NULL;
 
   if ((dialect = csvdialect_alloc()) == NULL) {
     ZF_LOGE("default initialization failure - allocation");
@@ -236,16 +237,18 @@ void csvdialect_close(csvdialect *dialect) {
  */
 csvreturn csvdialect_validate(csvdialect dialect) {
   ZF_LOGD("`csvdialect_validate` called at: `%p`", (void *)dialect);
-  csvreturn rc = csvreturn_init(false);
+  csvreturn rc;
 
   if (dialect == NULL) {
     ZF_LOGE("`csvdialect_validate` identified a NULL dialect");
+    rc              = csvreturn_init(false);
     rc.dialect_null = 1;
     return rc;
   }
 
   if (csvdialect_get_delimiter(dialect) == CSV_UNDEFINED_CHAR) {
     ZF_LOGE("`csvdialect_validate` identified a undefined delimiter character");
+    rc                 = csvreturn_init(false);
     rc.delimiter_error = 1;
     return rc;
   }
@@ -273,6 +276,7 @@ csvreturn csvdialect_validate(csvdialect dialect) {
       (csvdialect_get_escapechar(dialect) == CSV_UNDEFINED_CHAR)) {
     ZF_LOGE(
         "`csvdialect_validate` identified a quoting rule in an invalid state");
+    rc                   = csvreturn_init(false);
     rc.quoteescape_error = 1;
     return rc;
   }
@@ -281,9 +285,7 @@ csvreturn csvdialect_validate(csvdialect dialect) {
       "`csvdialect_validate` did not identify any issues with the CSV "
       "Dialect");
 
-  /* all checks passed, return success */
-  rc.succeeded = 1;
-  return rc;
+  return csvreturn_init(true);
 }
 
 csvreturn csvdialect_set_delimiter(csvdialect               dialect,

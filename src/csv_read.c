@@ -30,15 +30,7 @@
 #include <string.h>
 
 #include "csv.h"
-
-// #include "csv/definitions.h"
-// #include "csv/version.h"
-//
-// #include "csv/dialect.h"
-// #include "dialect_private.h"
-//
-// #include "csv/read.h"
-// #include "csv/stream.h"
+#include "dialect_private.h"
 
 /**
  * @brief Flags to store the parser state
@@ -504,7 +496,7 @@ csvreturn csvreader_next_record(csvreader reader,
               (char)value);
 
       if (value == '\0') {
-        ZF_LOGI("line contains NULL byte");
+        ZF_LOGE("line contains NULL byte");
         rc          = csvreturn_init(false);
         rc.io_error = 1;
         return rc;

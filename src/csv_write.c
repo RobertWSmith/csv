@@ -14,12 +14,12 @@
 #include <string.h>
 
 #include "csv.h"
+#include "dialect_private.h"
 
 // #include "csv/definitions.h"
 // #include "csv/version.h"
 //
 // #include "csv/dialect.h"
-// #include "dialect_private.h"
 //
 // #include "csv/stream.h"
 // #include "csv/write.h"
@@ -194,31 +194,24 @@ csvreturn csvwriter_next_record(csvwriter    writer,
     return csvreturn_init(false);
   }
 
-  csvreturn                rc;
-  size_t                   i;
-  size_t                   j;
-  size_t                   field_len;
-  csv_comparison_char_type value;
-  CSV_STREAM_SIGNAL        field_signal;
-  CSV_STREAM_SIGNAL        stream_signal;
-  size_t                   lineterminator_idx;
-  csv_comparison_char_type escapechar =
-      csvdialect_get_escapechar(writer->dialect);
-  csv_comparison_char_type quotechar =
-      csvdialect_get_quotechar(writer->dialect);
-  csv_comparison_char_type delimiter =
-      csvdialect_get_delimiter(writer->dialect);
-  QUOTE_STYLE quote_style   = csvdialect_get_quotestyle(writer->dialect);
-  bool        needs_quoting = true;
-  size_t      lineterminator_length = 0;
-  const char *lineterminator =
+  size_t i, j, field_len, lineterminator_idx, lineterminator_length;
+  csv_comparison_char_type value, escapechar, quotechar, delimiter;
+  CSV_STREAM_SIGNAL        field_signal, stream_signal;
+  QUOTE_STYLE              quote_style;
+  bool                     needs_quoting = true;
+  const char *             lineterminator =
       csvdialect_get_lineterminator(writer->dialect, &lineterminator_length);
 
+  escapechar  = csvdialect_get_escapechar(writer->dialect);
+  quotechar   = csvdialect_get_quotechar(writer->dialect);
+  delimiter   = csvdialect_get_delimiter(writer->dialect);
+  quote_style = csvdialect_get_quotestyle(writer->dialect);
+
   if (lineterminator == NULL) {
+    ZF_LOGW("Lineterminator is NULL, setting to system default");
     csvdialect_set_lineterminator(writer->dialect,
                                   CSV_LINETERMINATOR_SYSTEM_DEFAULT,
                                   strlen(CSV_LINETERMINATOR_SYSTEM_DEFAULT));
-
     lineterminator =
         csvdialect_get_lineterminator(writer->dialect, &lineterminator_length);
   }
@@ -229,7 +222,6 @@ csvreturn csvwriter_next_record(csvwriter    writer,
   }
 
   (*writer->setrecord)(writer->streamdata, record, length);
-
   for (i = 0; i < length; ++i) {
     field_signal = (*writer->setnextfield)(writer->streamdata, &field_len);
     ZF_LOGD("Field# %lu - Field Length: %lu - Field Signal: %u",
@@ -237,9 +229,7 @@ csvreturn csvwriter_next_record(csvwriter    writer,
             (long unsigned)field_len,
             field_signal);
 
-    if (field_signal == CSV_ERROR) {
-      break;
-    } else if (field_signal == CSV_EOR) {
+    if ((field_signal == CSV_ERROR) || (field_signal == CSV_EOR)) {
       break;
     }
 
@@ -272,22 +262,14 @@ csvreturn csvwriter_next_record(csvwriter    writer,
             break;
           }
 
-          if ((value == csvdialect_get_delimiter(writer->dialect)) ||
-              (value == csvdialect_get_quotechar(writer->dialect)) ||
-              (value == csvdialect_get_escapechar(writer->dialect)) ||
-              (value == '\n') || (value == '\r')) {
+          if ((value == delimiter) || (value == quotechar) ||
+              (value == escapechar) || (value == '\n') || (value == '\r')) {
             ZF_LOGV("value == delimiter? %s",
-                    (value == csvdialect_get_delimiter(writer->dialect))
-                        ? "true"
-                        : "false");
+                    (value == delimiter) ? "true" : "false");
             ZF_LOGV("value == quotechar? %s",
-                    (value == csvdialect_get_quotechar(writer->dialect))
-                        ? "true"
-                        : "false");
+                    (value == quotechar) ? "true" : "false");
             ZF_LOGV("value == escapechar? %s",
-                    (value == csvdialect_get_escapechar(writer->dialect))
-                        ? "true"
-                        : "false");
+                    (value == escapechar) ? "true" : "false");
             ZF_LOGV("value == newline? %s", (value == '\n') ? "true" : "false");
             ZF_LOGV("value == carriage return? %s",
                     (value == '\r') ? "true" : "false");
@@ -382,7 +364,7 @@ csvreturn csvwriter_next_record(csvwriter    writer,
     }
     ZF_LOGV("Lineterminator Index: %lu Value: `%c`",
             (long unsigned)lineterminator_idx,
-            lineterminator[lineterminator_idx]);
+            value);
     (*writer->writechar)(writer->streamdata, value);
   }
 
@@ -439,22 +421,21 @@ csvfilewriter csvfilewriter_init(void) {
  */
 csvfilewriter csvfilewriter_filepath_init(const char *filepath) {
   ZF_LOGD("Initializing filepath CSV File Writer");
-
   FILE *        outfile    = NULL;
   csvfilewriter filewriter = NULL;
 
   if (filepath == NULL) {
-    ZF_LOGE("ERROR - NULL value passed for `filepath`");
+    ZF_LOGE("`filepath` is NULL");
     return NULL;
   }
 
   if ((outfile = fopen(filepath, "wb")) == NULL) {
-    ZF_LOGE("ERROR - could not allocate `FILE*` for filepath: `%s`", filepath);
+    ZF_LOGE("Could not allocate `FILE*` for filepath: `%s`", filepath);
     return NULL;
   }
 
   if ((filewriter = csvfilewriter_init()) == NULL) {
-    ZF_LOGE("ERROR - could not allocate `csvfilewriter`");
+    ZF_LOGE("Could not allocate `csvfilewriter`");
     fclose(outfile);
     return NULL;
   }
@@ -477,12 +458,12 @@ csvfilewriter csvfilewriter_file_init(FILE *fileobj) {
   csvfilewriter filewriter = NULL;
 
   if (fileobj == NULL) {
-    ZF_LOGE("ERROR - NULL value passed for `fileobj`");
+    ZF_LOGE("`fileobj` is NULL");
     return NULL;
   }
 
   if ((filewriter = csvfilewriter_init()) == NULL) {
-    ZF_LOGE("ERROR - could not allocate `csvfilewriter`");
+    ZF_LOGE("Could not allocate `csvfilewriter`");
     return NULL;
   }
 
