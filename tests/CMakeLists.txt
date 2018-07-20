@@ -38,7 +38,7 @@ foreach(source ${CSV_TEST_SOURCES})
 
   target_compile_definitions(${targetname}
     PUBLIC $<$<BOOL:MINGW>:__USE_MINGW_ANSI_STDIO=1>
-    PUBLIC ZF_LOG_LEVEL=${CSV_LOG_LEVEL})
+    PUBLIC ZF_LOG_LEVEL=${CSV_LOGGING_DEFINITION})
 
   add_test(${targetname} ${CSV_TEST_DIR}/${targetname})
   set_tests_properties(${targetname} PROPERTIES
